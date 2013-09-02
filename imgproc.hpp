@@ -1,0 +1,321 @@
+/**
+ *	@file		imgproc.hpp
+ *	@brief		Defines the image class and several utility functions
+ *	@author		seonho.oh@gmail.com
+ *	@date		2013-07-01
+ *	@version	1.0
+ *
+ *	@section	LICENSE
+ *
+ *		Copyright (c) 2007-2013, Seonho Oh
+ *		All rights reserved. 
+ * 
+ *		Redistribution and use in source and binary forms, with or without  
+ *		modification, are permitted provided that the following conditions are  
+ *		met: 
+ * 
+ *		    * Redistributions of source code must retain the above copyright  
+ *		    notice, this list of conditions and the following disclaimer. 
+ *		    * Redistributions in binary form must reproduce the above copyright  
+ *		    notice, this list of conditions and the following disclaimer in the  
+ *		    documentation and/or other materials provided with the distribution. 
+ *		    * Neither the name of the <ORGANIZATION> nor the names of its  
+ *		    contributors may be used to endorse or promote products derived from  
+ *		    this software without specific prior written permission. 
+ * 
+ *		THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS  
+ *		IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED  
+ *		TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A  
+ *		PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER  
+ *		OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,  
+ *		EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,  
+ *		PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR  
+ *		PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF  
+ *		LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING  
+ *		NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS  
+ *		SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ */
+
+#pragma once
+
+#include <armadillo>
+
+#include <mycv.h>	// for OpenCV
+#pragma comment(lib, OPENCV_LIB_EXPAND("core"))
+#pragma comment(lib, OPENCV_LIB_EXPAND("imgproc"))
+#pragma comment(lib, OPENCV_LIB_EXPAND("highgui"))
+#pragma comment(lib, OPENCV_LIB_EXPAND("video"))
+
+namespace auxiliary
+{
+	/**
+	 *	@brief	A image class
+	 */
+	template <typename T>
+	class image : public Mat<T>
+	{
+	public:
+
+		typedef T									elem_type;	///< the type of elements stored in the matrix
+		typedef typename get_pod_type<T>::result	pod_type;	///< if eT is non-complex, pod_type is same as eT. otherwise, pod_type is the underlying type used by std::complex
+
+		typedef arma::uword							size_type;
+
+		image(): Mat() {}
+		image(const Mat& m): Mat(m) {}
+		image(const size_type width, const size_type height) : Mat(height, width) {}
+		
+		template <typename DT>
+		image(const Mat<DT>& m): Mat(m.n_rows, m.n_cols)
+		{
+			uchar* ptr = memptr();
+			// type conversion
+			concurrency::parallel_for(size_type(0), m.n_elem, [&](size_type i) {
+				ptr[i] = arma_ext::saturate_cast<uchar>(m(i));
+			});
+		}
+
+		/// dummy function
+		void release() {}
+
+		inline size_type width() const { return n_cols; }
+		inline size_type height() const { return n_rows; }
+
+		inline void resize(size_type width, size_type height)
+		{
+			return set_size(height, width);
+		}
+
+		// operator
+		operator Mat<T>&()
+		{
+			return static_cast<Mat<T> >(*this);
+		}
+	};
+
+	typedef image<unsigned char>	Image;
+
+	/**
+	 *	@brief	Retrieves a pixel rectangle from an image with sub-pixel accuracy.
+	 *	@param img source image
+	 *	@param patchsize	The size of the extracted patch.
+	 *	@param center		The coordinate of the center of the extracted rectangle within the source image.
+	 *						The center must be inside of image.
+	 *	@return	Extracted patch that has the size @c patchsize and the same format as @c img.
+	 *			This function extracts pixels from src:
+	 *			\f[
+	 *				dst(x, y) = src(x + center.x - (dst.cols - 1) * 0.5, y + center.y - (dst.rows - 1) * 0.5)
+	 *			\f]
+	 *			where the values of the pixels at non-integer coordinates are retrieved using bilinear interpolation.
+	 *			While the center of the rectangle must be inside the image, parts of the rectangle may be outside.
+	 *			In this case, extrapolate the pixel values by replication border condition.
+	 */
+	static arma::Mat<unsigned char> getRectSubPix(const Image& img, Size<arma_ext::uword> patchsize, arma::colvec center)
+	{
+		typedef unsigned char uchar;
+		arma::Mat<uchar> out(patchsize.height, patchsize.width);
+
+		center(0) -= (patchsize.width - 1) * 0.5;
+		center(1) -= (patchsize.height - 1) * 0.5;
+
+		int ipx = (int)std::floor(center(0));
+		int ipy = (int)std::floor(center(1));
+
+		double ox = center(0) - ipx;
+		double oy = center(1) - ipy;
+		
+		double a11 = (1 - ox) * (1 - oy),
+			   a12 = ox * (1 - oy),
+			   a21 = (1 - ox) * oy,
+			   a22 = ox * oy;
+
+		if (0 <= ipx && ipx + patchsize.width < img.n_cols &&
+			0 <= ipy && ipy + patchsize.height < img.n_rows) {
+			// extracted rectnagle is totally inside the image
+
+			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+				uchar* ptr = out.colptr(j);
+				const uchar* src = img.colptr(ipy + j);
+				for (arma_ext::size_type i = 0 ; i < out.n_rows ; i++) {
+					// bilinear interpolation
+					ptr[i] = arma_ext::saturate_cast<uchar>(src[ipx + i                 ] * a11 +
+															src[ipx + i + 1             ] * a12 +
+															src[ipx + i + img.n_rows    ] * a21 +
+															src[ipx + i + img.n_rows + 1] * a22);
+				}
+			});
+		} else {
+			arma::ivec4 r;
+
+			// adjust rectangle
+			if (ipx >= 0)	r(0) = 0;
+			else			r(0) = -ipx;
+			
+			if (ipx + patchsize.width < img.n_cols)
+				r(2) = patchsize.width;
+			else {
+				r(2) = img.n_cols - ipx - 1;
+				//if (r(2) < 0) r(2) = 0;
+			}
+
+			if (ipy >= 0)	r(1) = 0;
+			else			r(1) = -ipy;
+
+			if (ipy + patchsize.height < img.n_rows)
+				r(3) = patchsize.height;
+			else
+				r(3) = img.n_rows - ipy - 1;
+
+			double b1 = (1 - ox);
+			double b2 = ox;
+
+			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+				uchar* ptr = out.colptr(j);
+				
+				arma::uword ci1 = ipx + j;
+				arma::uword ci2 = ipx + j + 1;
+
+				if (j < (arma_ext::size_type)r(0)) ci1 = 0;
+				else if (j > (arma_ext::size_type)r(2)) ci1 = out.n_cols - 1;
+
+				if (j + 1 < (arma_ext::size_type)r(0)) ci2 = 0;
+				else if (j + 1 > (arma_ext::size_type)r(2)) ci2 = out.n_cols - 1;
+
+				const uchar* src1 = img.colptr(ci1);
+				const uchar* src2 = img.colptr(ci2);
+								
+				arma_ext::size_type i = 0;
+				for (; i < (arma_ext::size_type)r(1) ; i++)
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[0] * b1 + src2[0] * b2);
+
+				for ( ; i < (arma_ext::size_type)r(3) ; i++) {
+					// bilinear interpolation
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[ipy + i    ] * a11 +
+															src1[ipy + i + 1] * a12 +
+															src2[ipy + i    ] * a21 +
+															src2[ipy + i + 1] * a22);
+				}
+				arma::uword t = img.n_rows - 1;
+				for ( ; i < out.n_rows ; i++)
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[t] * b1 + src2[t] * b2);
+			});
+		}
+		return out;
+	}
+		
+	/**
+	 *	@brief	Gaussian blur using 12x12 with given sigma.
+	 *	@param	img An input image.
+	 *	@param	sigma The sigma for gaussian kernel.
+	 *	@return	The blurred image.
+	 */
+	Image blur(const Image& img, double sigma)
+	{
+		typedef Image::size_type size_type;
+
+		// gaussian kernel
+		const size_type multiplier = 6;
+		size_type kernel_size = size_type(multiplier * sigma);
+		
+		mat h(kernel_size, kernel_size);
+		double sz = (h.n_rows - 1) / -2.0;
+		double denom = 2 * sigma * sigma;
+		concurrency::parallel_for(size_type(0), h.n_cols, [&] (size_type c) {
+			double x = sz + c;
+			for (size_type r = 0 ; r < h.n_rows ; r++) {
+				double y = sz + r;
+				double arg = -(x * x + y * y) / denom;
+				h(r, c) = exp(arg);
+			}
+		});
+
+		umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
+		if (arma_ext::any(mask)) {
+			for (uword i = 0 ; i < h.n_elem ; i++)
+				if (mask(i)) h(i) = 0;
+		}
+		h /= accu(h);
+
+		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
+
+		// convolution
+		//mat tmp = conv_to<mat>::from(img);
+		//double t = (double)cv::getTickCount();
+		mat C = arma_ext::conv2(conv_to<mat>::from(img), h);
+		//t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+		//std::cout << t << std::endl;
+
+		C = C(span(shift, C.n_rows - shift), span(shift, C. n_cols - shift));
+
+		/*
+		// separable convolution
+		{
+			mat h(kernel_size, 1);
+			double sz = (h.n_rows - 1) / -2.0;
+			double denom = 2 * sigma * sigma;
+			concurrency::parallel_for(size_type(0), h.n_elem, [&] (size_type c) {
+				double x = sz + c;
+				double arg = -(x * x) / denom;
+				h(c) = exp(arg);
+			});
+
+			h /= sqrt(accu(h * h.t()));
+			//mat H = h * trans(h);
+			//double sum = sqrt(accu());
+			//h /= sum;
+
+			// convolution
+			//double t = (double)cv::getTickCount();
+			mat D = arma_ext::separable_conv(conv_to<mat>::from(img), h, h);
+			//t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
+			//std::cout << t << std::endl;
+
+			double val = accu(C - D);
+			std::cout << val << std::endl;
+		}
+		*/
+
+		Image out(C);
+		return out;
+	}
+
+	/**
+	 *	@brief	
+	 */
+	void imshow(const char* name, const Image& img)
+	{
+		cv::Mat out(img.n_rows, img.n_cols, CV_8U);
+		Image t = img.t();
+		memcpy(out.data, t.memptr(), t.n_elem);
+
+		cv::imshow(name, out);
+	}
+
+	/**
+	 *	@brief	Convert BGR image or colormap to grayscale.
+	 *	@param img	the truecolor BGR image to be converted into grayscale
+	 *	@return	grayscale intensity image
+	 *	@see	http://www.mathworks.co.kr/kr/help/images/ref/rgb2gray.html
+	 */
+	Image	bgr2gray(const cv::Mat& img)
+	{
+		arma::Mat<uchar> gray(img.cols, img.rows);
+		uchar* ptr = gray.memptr();
+#if 0
+		concurrency::parallel_for(0, img.rows, [&](int r) {
+		//for (int r = 0 ; r < img.rows ; r++) {
+			const uchar* src = img.ptr(r);
+			uchar* dst = ptr + gray.n_rows * r;
+			for (int c = 0 ; c < img.cols ; c++, src += 3)
+				dst[c] = arma_ext::round<uchar>(src[2] * 0.298936021293776 + src[1] * 0.587043074451121 + src[0] * 0.114020904255103);
+		//}
+		});
+#else
+		cv::Mat bw;
+		cv::cvtColor(img, bw, CV_BGR2GRAY);
+		memcpy(ptr, bw.data, bw.total());
+#endif
+
+		return Image(gray.t());
+	}
+}
