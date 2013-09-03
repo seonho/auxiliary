@@ -49,8 +49,8 @@ namespace auxiliary
 	using namespace arma;
 
 	/**
-	 *	@brief	Template class for Size type
-	 *	@tparam	T	type of width and height
+	 *	@brief	Template class for size type
+	 *	@tparam	T	the type of width and height
 	 */
 	template <typename T>
 	union Size
@@ -68,8 +68,8 @@ namespace auxiliary
 		}
 		
 		struct {
-			T width;	///<	width
-			T height;	///<	height
+			T width;	///< the width
+			T height;	///< the height
 		};
 		T value[2];
 	};

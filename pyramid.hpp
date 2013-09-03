@@ -41,10 +41,9 @@
 
 namespace auxiliary
 {
-	
-	/// border type
+	/// Various border types, image boundaries are denoted with '|'
 	enum border_type : arma::uword {
-		constant,	///< iii | abc | iii
+		constant,	///< iii | abc | iii with some specified 'i'
 		reflect,	///< cba | abc | cba
 		replicate,	///< aaa | abc | ccc
 		warp,		///< abc | abc | abc
@@ -53,17 +52,21 @@ namespace auxiliary
 	};
 
 	/**
+	 *	@brief	Computes the location of an extrapolated pixel.
+	 *	@param p	0-based coordinate of the extrapolated pixel along one of the axes.
+	 *	@param n	Length of the array along the corresponding axis.
+	 *	@param type	Border type, one of the ::border_type.
 	 */
-	inline arma::uword borderInterpolate(int p, int n, border_type bt = reflect101)
+	inline arma::uword borderInterpolate(int p, int n, border_type type = reflect101)
 	{
 		//return (p < 0) ? -p : ((p < n) ? p : (n + n - p - 1));
 		if ((unsigned)p < (unsigned)n) return p;
 
-		switch (bt) {
+		switch (type) {
 		case reflect:
 		case reflect101:
 			{
-				int delta = (bt == reflect101);
+				int delta = (type == reflect101);
 
 				if (n == 1) p = 0;
 
@@ -84,6 +87,8 @@ namespace auxiliary
 			if (p > n)
 				p %= n;
 			break;
+		case constant:
+			p = -1;
 		default:
 			break;
 		};
@@ -94,10 +99,8 @@ namespace auxiliary
 #define castOp(x) ((x + 128) >> 8)
 
 	/**
-	 *	@brief blurs an image and downsamples it
-	 *	@param in
-	 *	@param out
-	 *	@note	The function performs the downsampling step of the Gaussian pyramid construction.<br> 
+	 *	@brief	Blurs an image and downsamples it.<br>
+	 *			This function performs the downsampling step of the Gaussian pyramid construction.<br> 
 	 *			First, it convolves the source image with the kernel:
 	 *			\f[
 	 *				\frac{1}{256}
@@ -110,7 +113,10 @@ namespace auxiliary
 	 *				\end{bmatrix}
 	 *			\f]
 	 *			Then, it downsamples the image by rejecting even rows and columns.
-	 *	@todo	using SSE2, we can speed up convolution, @see PyrDownVec_32s8u in pyramid.cpp of OpenCV
+	 *	@param in
+	 *	@param out
+	 *	@note	This function is preliminary; it is not yet fully optimized.
+	 *	@see	PyrDownVec_32s8u in pyramid.cpp of OpenCV
 	 */
 	template <typename T1, typename T2>
 	void pyrDown(const T1& in, T2& out)
