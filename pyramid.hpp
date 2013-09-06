@@ -43,11 +43,11 @@ namespace auxiliary
 {
 	/// Various border types, image boundaries are denoted with '|'
 	enum border_type : arma::uword {
-		constant,	///< iii | abc | iii with some specified 'i'
-		reflect,	///< cba | abc | cba
-		replicate,	///< aaa | abc | ccc
-		warp,		///< abc | abc | abc
-		reflect101,	///< acb | abc | bac
+		constant,	///< iii | abcde | iii with some specified 'i'
+		reflect,	///< cba | abcde | edc
+		replicate,	///< aaa | abcde | eee
+		warp,		///< cde | abcde | abc
+		reflect101,	///< dcb | abcde | dcb
 		transparent	///< not specified
 	};
 
@@ -132,9 +132,13 @@ namespace auxiliary
 
 		int sx0 = -(int)KERNEL_SIZE / 2, sx = sx0;
 
-		arma::uvec tabR(KERNEL_SIZE);
-		for (uword y = 0 ; y < KERNEL_SIZE ; y++)
-			tabR(y) = borderInterpolate((int)(y + (in.n_rows - 1)) + sx0, (int)in.n_rows);
+		arma::umat tab(KERNEL_SIZE + 2, 2);
+		uword* lptr = tab.colptr(0),
+			 * rptr = tab.colptr(1);
+		for (uword y = 0 ; y <= KERNEL_SIZE + 1 ; y++) {
+			lptr[y] = borderInterpolate((int)y + sx0, (int)in.n_rows);
+			rptr[y] = borderInterpolate((int)(y + (out.n_rows - 1) * 2) + sx0, (int)in.n_rows);
+		}
 
 		// gaussian convolution with 
 		for (arma::uword x = 0 ; x < out.n_cols ; x++) {
@@ -143,23 +147,23 @@ namespace auxiliary
 			// vertical convolution and decimation
 			for ( ; sx <= (int)x * 2 + 2 ; sx++) {
 				ivec& col = cols.next();
-				//ivec col(out.n_rows);
+				int* colptr = col.colptr(0);
 
 				// interpolate border
-				const uchar* src = in.colptr(borderInterpolate((int)x + sx, (int)in.n_cols));
+				const uchar* src = in.colptr(borderInterpolate(sx, (int)in.n_cols));
 
-				col(0) = src[0] * 6 + (src[1] + src[1]) * 4 + (src[2] + src[2]);
+				colptr[0] = src[lptr[2]] * 6 + (src[lptr[1]] + src[lptr[3]]) * 4 + (src[lptr[0]] + src[lptr[4]]);
 
 				for (arma::uword y = 1 ; y < out.n_rows - 1; y++)
 				//concurrency::parallel_for(uword(1), out.n_rows - 1, [&](uword y) {
-					col(y) = src[y * 2] * 6 + 
+					colptr[y] = src[y * 2] * 6 + 
 							 (src[y * 2 - 1] + src[y * 2 + 1]) * 4 + 
 							 (src[y * 2 - 2] + src[y * 2 + 2]);
 				//});
 
-				col(out.n_rows - 1) = src[tabR[2]] * 6 + 
-									  (src[tabR[1]] + src[tabR[3]]) * 4 + 
-									  (src[tabR[0]] + src[tabR[4]]);
+				colptr[out.n_rows - 1] = src[rptr[2]] * 6 + 
+									  (src[rptr[1]] + src[rptr[3]]) * 4 + 
+									  (src[rptr[0]] + src[rptr[4]]);
 			}
 
 			const int* col0 = cols[0].colptr(0);

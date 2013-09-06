@@ -110,95 +110,123 @@ namespace auxiliary
 	 *			While the center of the rectangle must be inside the image, parts of the rectangle may be outside.
 	 *			In this case, extrapolate the pixel values by replication border condition.
 	 */
-	static arma::Mat<unsigned char> getRectSubPix(const Image& img, Size<arma_ext::uword> patchsize, arma::colvec center)
+	template <typename vec_type>
+	static arma::Mat<unsigned char> getRectSubPix(const Image& img, Size<arma_ext::uword> patchsize, const vec_type center)
 	{
 		typedef unsigned char uchar;
+		typedef vec_type::elem_type elem_type;
 		arma::Mat<uchar> out(patchsize.height, patchsize.width);
 
-		center(0) -= (patchsize.width - 1) * 0.5;
-		center(1) -= (patchsize.height - 1) * 0.5;
+		Col<elem_type>::fixed<2> center_ = center;
 
-		int ipx = (int)std::floor(center(0));
-		int ipy = (int)std::floor(center(1));
+		center_(0) -= (patchsize.width - 1) * (elem_type)0.5;
+		center_(1) -= (patchsize.height - 1) * (elem_type)0.5;
 
-		double ox = center(0) - ipx;
-		double oy = center(1) - ipy;
+		int ipx = (int)std::floor(center_(0));
+		int ipy = (int)std::floor(center_(1));
+
+		elem_type ox = center_(0) - ipx;
+		elem_type oy = center_(1) - ipy;
 		
-		double a11 = (1 - ox) * (1 - oy),
-			   a12 = ox * (1 - oy),
-			   a21 = (1 - ox) * oy,
-			   a22 = ox * oy;
+		elem_type a11 = (1 - ox) * (1 - oy),
+				  a12 =      ox  * (1 - oy),
+				  a21 = (1 - ox) * oy,
+				  a22 =      ox  * oy;
 
 		if (0 <= ipx && ipx + patchsize.width < img.n_cols &&
 			0 <= ipy && ipy + patchsize.height < img.n_rows) {
 			// extracted rectnagle is totally inside the image
 
 			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+			//for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 				uchar* ptr = out.colptr(j);
-				const uchar* src = img.colptr(ipy + j);
-				for (arma_ext::size_type i = 0 ; i < out.n_rows ; i++) {
+				const uchar* src = img.colptr(ipx + j) + ipy;
+				arma_ext::size_type i;
+				for (i = 0 ; i < out.n_rows ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<uchar>(src[ipx + i                 ] * a11 +
-															src[ipx + i + 1             ] * a12 +
-															src[ipx + i + img.n_rows    ] * a21 +
-															src[ipx + i + img.n_rows + 1] * a22);
+					ptr[i] = arma_ext::saturate_cast<uchar>(src[i                 ] * a11 +
+															src[i + 1             ] * a21 +
+															src[i + img.n_rows    ] * a12 +
+															src[i + img.n_rows + 1] * a22);
 				}
 			});
+			//}
 		} else {
 			arma::ivec4 r;
 
 			// adjust rectangle
-			if (ipx >= 0)	r(0) = 0;
-			else			r(0) = -ipx;
+			int sox = 0, soy = 0;
+			// begin
+			if (ipx >= 0) {
+				r(0) = 0;
+				sox += ipx;	// + ipx
+			} else {
+				r(0) = -ipx;
+				if (r(0) > (int)patchsize.width)
+					r(0) = patchsize.width;
+			}
 			
 			if (ipx + patchsize.width < img.n_cols)
 				r(2) = patchsize.width;
 			else {
 				r(2) = img.n_cols - ipx - 1;
-				//if (r(2) < 0) r(2) = 0;
+				if (r(2) < 0) {
+					r(2) = 0;
+					sox += r(2);	// + width
+				}
 			}
 
-			if (ipy >= 0)	r(1) = 0;
-			else			r(1) = -ipy;
+			if (ipy >= 0) {
+				r(1) = 0;
+				soy += ipy;	// + ipy
+			} else			r(1) = -ipy;
 
 			if (ipy + patchsize.height < img.n_rows)
 				r(3) = patchsize.height;
-			else
+			else {
 				r(3) = img.n_rows - ipy - 1;
+				if (r(3) < 0) {
+					r(3) = 0;
+					soy += r(3);	// + height
+				}
+			}
+			// end
+			soy -= r(1);
 
-			double b1 = (1 - ox);
-			double b2 = ox;
+			elem_type b1 = (elem_type)1.0 - ox,
+					  b2 = ox;
 
-			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+			arma::uword ci1 = sox;
+
+			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 				uchar* ptr = out.colptr(j);
 				
-				arma::uword ci1 = ipx + j;
-				arma::uword ci2 = ipx + j + 1;
+				arma::uword ci2 = ci1 + 1;
 
-				if (j < (arma_ext::size_type)r(0)) ci1 = 0;
-				else if (j > (arma_ext::size_type)r(2)) ci1 = out.n_cols - 1;
+				if ((int)j < r(0) || (int)j >= r(2))
+					ci2--;
 
-				if (j + 1 < (arma_ext::size_type)r(0)) ci2 = 0;
-				else if (j + 1 > (arma_ext::size_type)r(2)) ci2 = out.n_cols - 1;
-
-				const uchar* src1 = img.colptr(ci1);
-				const uchar* src2 = img.colptr(ci2);
+				const uchar* src1 = img.colptr(ci1) + soy;
+				const uchar* src2 = img.colptr(ci2) + soy;
 								
 				arma_ext::size_type i = 0;
 				for (; i < (arma_ext::size_type)r(1) ; i++)
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[0] * b1 + src2[0] * b2);
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[r(1)] * b1 + src2[r(1)] * b2);
 
 				for ( ; i < (arma_ext::size_type)r(3) ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[ipy + i    ] * a11 +
-															src1[ipy + i + 1] * a12 +
-															src2[ipy + i    ] * a21 +
-															src2[ipy + i + 1] * a22);
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[i    ] * a11 +
+															src1[i + 1] * a21 +
+															src2[i    ] * a12 +
+															src2[i + 1] * a22);
 				}
 				arma::uword t = img.n_rows - 1;
 				for ( ; i < out.n_rows ; i++)
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[t] * b1 + src2[t] * b2);
-			});
+					ptr[i] = arma_ext::saturate_cast<uchar>(src1[r(3)] * b1 + src2[r(3)] * b2);
+
+				if ((int)j < r(2))
+					ci1 = ci2;
+			}
 		}
 		return out;
 	}
