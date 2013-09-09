@@ -78,19 +78,19 @@ namespace auxiliary
 			buffer_[tail_] = item;
 		}
 
-		reference front() { return buffer_[head_]; }
-		const_reference front() const { return buffer_[head_]; }
+		inline reference front() { return buffer_[head_]; }
+		inline const_reference front() const { return buffer_[head_]; }
 
-		reference back() { return buffer_[tail_]; }
-		const_reference back() const { return buffer_[tail_]; }
+		inline reference back() { return buffer_[tail_]; }
+		inline const_reference back() const { return buffer_[tail_]; }
 
-		const_reference operator[] (size_type i) const
+		inline const_reference operator[] (size_type i) const
 		{
 			assert(i < size_);
 			return buffer_[(head_ + i) % size_];
 		}
 
-		reference operator[] (size_type i)
+		inline reference operator[] (size_type i)
 		{
 			assert(i < size_);
 			return buffer_[(head_ + i) % size_];
@@ -101,7 +101,7 @@ namespace auxiliary
 			head_ = tail_ = contents_size_ = 0;
 		}
 
-		size_type size() const { return size_; }
+		inline size_type size() const { return size_; }
 
 	private:
 		void inc_head()

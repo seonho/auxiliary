@@ -63,7 +63,7 @@ namespace auxiliary
 			height = h;
 		}
 
-		T operator[] (size_type i) {
+		inline T operator[] (size_type i) {
 			return value[i];
 		}
 		

@@ -95,7 +95,7 @@ namespace auxiliary
 			image = bgr2gray(frame);
 		}
 
-		std::string current_directory() const
+		inline std::string current_directory() const
 		{
 			return dir;
 		}
