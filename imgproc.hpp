@@ -262,6 +262,7 @@ namespace auxiliary
 			for (uword i = 0 ; i < h.n_elem ; i++)
 				if (mask(i)) h(i) = 0;
 		}
+
 		h /= accu(h);
 
 		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
@@ -308,15 +309,17 @@ namespace auxiliary
 	}
 
 	/**
-	 *	@brief	
+	 *	@brief	tocvMat
 	 */
-	void imshow(const char* name, const Image& img)
+	//void imshow(const char* name, const Image& img)
+	cv::Mat tocvMat(const Image& img)
 	{
 		cv::Mat out(img.n_rows, img.n_cols, CV_8U);
 		Image t = img.t();
 		memcpy(out.data, t.memptr(), t.n_elem);
 
-		cv::imshow(name, out);
+		//cv::imshow(name, out);
+		return out;
 	}
 
 	/**
