@@ -74,6 +74,7 @@ namespace auxiliary
 			}
 		}
 
+		///	Grabs the next frame from video file or directory.
 		bool grab()
 		{
 			if (cap.isOpened()) return cap.grab();
@@ -81,6 +82,7 @@ namespace auxiliary
 			return (pos < files.size());
 		}
 
+		///	Decodes and returns the grabbed video frame or image.
 		void retrieve(Image& image)
 		{
 			cv::Mat frame;
@@ -95,6 +97,7 @@ namespace auxiliary
 			image = bgr2gray(frame);
 		}
 
+		///	Get current directory
 		inline std::string current_directory() const
 		{
 			return dir;
@@ -103,8 +106,8 @@ namespace auxiliary
 	private:
 		cv::VideoCapture cap;			///< video capture
 
-		std::string dir;				///< image directory
-		std::vector<std::string> files;	///< image file names
-		size_t pos;						///< the frame no.
+		std::string dir;				///< the current directory
+		std::vector<std::string> files;	///< the image file names
+		size_t pos;						///< the current frame number
 	};
 }

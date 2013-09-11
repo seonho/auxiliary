@@ -60,16 +60,16 @@ namespace auxiliary
 
 		typedef arma::uword							size_type;
 
-		/// 
+		/// Constructor
 		image(): Mat() {}
 
-		/// 
+		/// Constructor
 		image(const Mat& m): Mat(m) {}
 
-		/// 
+		/// Constructor
 		image(const size_type width, const size_type height) : Mat(height, width) {}
 		
-		/// 
+		/// Constructor
 		template <typename DT>
 		image(const Mat<DT>& m): Mat(m.n_rows, m.n_cols)
 		{
@@ -80,22 +80,22 @@ namespace auxiliary
 			});
 		}
 
-		/// dummy function
+		/// Dummy function
 		void release() {}
 
-		/// get image width
+		/// Get image width
 		inline size_type width() const { return n_cols; }
 
-		/// get image height
+		/// Get image height
 		inline size_type height() const { return n_rows; }
 
-		/// resize image
+		/// Resize image
 		inline void resize(size_type width, size_type height)
 		{
 			return set_size(height, width);
 		}
 
-		// operator
+		// Operator overloading
 		operator Mat<T>&()
 		{
 			return static_cast<Mat<T> >(*this);
@@ -244,8 +244,8 @@ namespace auxiliary
 		
 	/**
 	 *	@brief	Gaussian blur using 12x12 with given sigma.
-	 *	@param	img An input image.
-	 *	@param	sigma The sigma for gaussian kernel.
+	 *	@param	img		An input image.
+	 *	@param	sigma	The sigma for gaussian kernel.
 	 *	@return	The blurred image.
 	 */
 	Image blur(const Image& img, double sigma)

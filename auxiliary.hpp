@@ -41,7 +41,7 @@
 #include "arma_ext.hpp"
 
 /**
- *	@brief	An auxiliary classes and functions for parallel tracking-learning-detection.
+ *	@brief	An auxiliary classes and functions.
  *	@note	Implements serveral interface functions for OpenCV
  */
 namespace auxiliary

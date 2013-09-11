@@ -52,6 +52,7 @@ namespace auxiliary
 	public:
 		explicit circular_buffer(const size_type n): buffer_(n), size_(n), contents_size_(0), head_(0), tail_(0) {}
 
+		///	Get next element in the circular buffer
 		reference next()
 		{
 			assert(contents_size_ == size_);
@@ -60,6 +61,7 @@ namespace auxiliary
 			return buffer_[tail_];
 		}
 
+		/// Add new last element.
 		void push_back(const value_type& item)
 		{
 			if (contents_size_ == 0) {
@@ -78,29 +80,40 @@ namespace auxiliary
 			buffer_[tail_] = item;
 		}
 
+		///	Accesses the first element.
 		inline reference front() { return buffer_[head_]; }
+
+		///	Accesses the first element.
 		inline const_reference front() const { return buffer_[head_]; }
 
+		///	Accesses the last element
 		inline reference back() { return buffer_[tail_]; }
+
+		///	Access the last element
 		inline const_reference back() const { return buffer_[tail_]; }
 
+		///	Accesses the element
 		inline const_reference operator[] (size_type i) const
 		{
 			assert(i < size_);
 			return buffer_[(head_ + i) % size_];
 		}
 
+		///	Accesses the element
 		inline reference operator[] (size_type i)
 		{
 			assert(i < size_);
 			return buffer_[(head_ + i) % size_];
 		}
 
+		///	Removes all elements.
 		void clear()
 		{
 			head_ = tail_ = contents_size_ = 0;
+			buffer_.clear();
 		}
 
+		/// Counts the number of elements.
 		inline size_type size() const { return size_; }
 
 	private:
@@ -117,10 +130,10 @@ namespace auxiliary
 		}
 
 	private:
-		std::vector<T>	buffer_;
-		size_type		size_;
-		size_type		contents_size_;
-		size_type		head_;
-		size_type		tail_;
+		std::vector<T>	buffer_;		///< the container
+		size_type		size_;			///< the size of buffer
+		size_type		contents_size_;	///< the contents size
+		size_type		head_;			///< position of the first element
+		size_type		tail_;			///< position of the last element
 	};
 }
