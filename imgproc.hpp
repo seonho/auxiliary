@@ -49,22 +49,27 @@
 namespace auxiliary
 {
 	/**
-	 *	@brief	A image class
+	 *	@brief	A template image class
 	 */
 	template <typename T>
 	class image : public Mat<T>
 	{
 	public:
-
 		typedef T									elem_type;	///< the type of elements stored in the matrix
 		typedef typename get_pod_type<T>::result	pod_type;	///< if eT is non-complex, pod_type is same as eT. otherwise, pod_type is the underlying type used by std::complex
 
 		typedef arma::uword							size_type;
 
+		/// 
 		image(): Mat() {}
+
+		/// 
 		image(const Mat& m): Mat(m) {}
+
+		/// 
 		image(const size_type width, const size_type height) : Mat(height, width) {}
 		
+		/// 
 		template <typename DT>
 		image(const Mat<DT>& m): Mat(m.n_rows, m.n_cols)
 		{
@@ -78,9 +83,13 @@ namespace auxiliary
 		/// dummy function
 		void release() {}
 
+		/// get image width
 		inline size_type width() const { return n_cols; }
+
+		/// get image height
 		inline size_type height() const { return n_rows; }
 
+		/// resize image
 		inline void resize(size_type width, size_type height)
 		{
 			return set_size(height, width);
@@ -93,6 +102,7 @@ namespace auxiliary
 		}
 	};
 
+	/// Image class
 	typedef image<unsigned char>	Image;
 
 	/**
@@ -137,8 +147,8 @@ namespace auxiliary
 			0 <= ipy && ipy + patchsize.height < img.n_rows) {
 			// extracted rectnagle is totally inside the image
 
-			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
-			//for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+			//concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 				uchar* ptr = out.colptr(j);
 				const uchar* src = img.colptr(ipx + j) + ipy;
 				arma_ext::size_type i;
@@ -149,65 +159,66 @@ namespace auxiliary
 															src[i + img.n_rows    ] * a12 +
 															src[i + img.n_rows + 1] * a22);
 				}
-			});
-			//}
+			//});
+			}
 		} else {
 			arma::ivec4 r;
 
 			// adjust rectangle
 			int sox = 0, soy = 0;
-			// begin
+
+			// -------- begin --------
 			if (ipx >= 0) {
-				r(0) = 0;
 				sox += ipx;	// + ipx
+				r(0) = 0;
 			} else {
 				r(0) = -ipx;
 				if (r(0) > (int)patchsize.width)
 					r(0) = patchsize.width;
 			}
 			
-			if (ipx + patchsize.width < img.n_cols)
+			if (ipx + (int)patchsize.width < (int)img.n_cols)
 				r(2) = patchsize.width;
 			else {
-				r(2) = img.n_cols - ipx - 1;
+				r(2) = (int)img.n_cols - ipx - 1;
 				if (r(2) < 0) {
-					r(2) = 0;
 					sox += r(2);	// + width
+					r(2) = 0;
 				}
 			}
 
 			if (ipy >= 0) {
-				r(1) = 0;
 				soy += ipy;	// + ipy
-			} else			r(1) = -ipy;
+				r(1) = 0;
+			} else {
+				r(1) = -ipy;
+				if (r(1) > (int)patchsize.height)
+					r(1) = patchsize.height;
+			}
 
-			if (ipy + patchsize.height < img.n_rows)
+			if (ipy + (int)patchsize.height < (int)img.n_rows)
 				r(3) = patchsize.height;
 			else {
-				r(3) = img.n_rows - ipy - 1;
+				r(3) = (int)img.n_rows - ipy - 1;
 				if (r(3) < 0) {
-					r(3) = 0;
 					soy += r(3);	// + height
+					r(3) = 0;
 				}
 			}
-			// end
-			soy -= r(1);
+			// --------- end ---------
+
+			//soy -= r(1);
 
 			elem_type b1 = (elem_type)1.0 - ox,
 					  b2 = ox;
 
-			arma::uword ci1 = sox;
-
+			const uchar* src1 = img.colptr(sox) + soy;
 			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 				uchar* ptr = out.colptr(j);
-				
-				arma::uword ci2 = ci1 + 1;
+				const uchar* src2 = src1 + img.n_rows;
 
 				if ((int)j < r(0) || (int)j >= r(2))
-					ci2--;
-
-				const uchar* src1 = img.colptr(ci1) + soy;
-				const uchar* src2 = img.colptr(ci2) + soy;
+					src2 -= img.n_rows;
 								
 				arma_ext::size_type i = 0;
 				for (; i < (arma_ext::size_type)r(1) ; i++)
@@ -220,12 +231,12 @@ namespace auxiliary
 															src2[i    ] * a12 +
 															src2[i + 1] * a22);
 				}
-				arma::uword t = img.n_rows - 1;
+
 				for ( ; i < out.n_rows ; i++)
 					ptr[i] = arma_ext::saturate_cast<uchar>(src1[r(3)] * b1 + src2[r(3)] * b2);
 
 				if ((int)j < r(2))
-					ci1 = ci2;
+					src1 = src2;
 			}
 		}
 		return out;

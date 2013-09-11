@@ -147,7 +147,7 @@ namespace auxiliary
 			// vertical convolution and decimation
 			for ( ; sx <= (int)x * 2 + 2 ; sx++) {
 				ivec& col = cols.next();
-				int* colptr = col.colptr(0);
+				int* colptr = col.memptr();
 
 				// interpolate border
 				const uchar* src = in.colptr(borderInterpolate(sx, (int)in.n_cols));
@@ -166,11 +166,11 @@ namespace auxiliary
 									  (src[rptr[0]] + src[rptr[4]]);
 			}
 
-			const int* col0 = cols[0].colptr(0);
-			const int* col1 = cols[1].colptr(0);
-			const int* col2 = cols[2].colptr(0);
-			const int* col3 = cols[3].colptr(0);
-			const int* col4 = cols[4].colptr(0);
+			const int* col0 = cols[0].memptr();
+			const int* col1 = cols[1].memptr();
+			const int* col2 = cols[2].memptr();
+			const int* col3 = cols[3].memptr();
+			const int* col4 = cols[4].memptr();
 
 			// horizontal convolution and decimation
 #if ENABLE_SSE2
