@@ -147,8 +147,8 @@ namespace auxiliary
 			0 <= ipy && ipy + patchsize.height < img.n_rows) {
 			// extracted rectnagle is totally inside the image
 
-			//concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
-			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+			//for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 				uchar* ptr = out.colptr(j);
 				const uchar* src = img.colptr(ipx + j) + ipy;
 				arma_ext::size_type i;
@@ -159,8 +159,8 @@ namespace auxiliary
 															src[i + img.n_rows    ] * a12 +
 															src[i + img.n_rows + 1] * a22);
 				}
-			//});
-			}
+			});
+			//}
 		} else {
 			arma::ivec4 r;
 
