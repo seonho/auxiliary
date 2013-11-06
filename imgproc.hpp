@@ -40,7 +40,7 @@
 
 #include <armadillo>
 
-#include <mycv.h>	// for OpenCV
+#include <mycv.hpp>	// for OpenCV
 #pragma comment(lib, OPENCV_LIB_EXPAND("core"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("imgproc"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("highgui"))
