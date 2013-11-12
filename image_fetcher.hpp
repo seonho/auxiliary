@@ -48,6 +48,40 @@ namespace auxiliary
 	/// supporting file formats
 	static std::string supported_file_formats("*.bmp;*.dib;*.jpeg;*.jpg;*.jpe;*.jp2;*.png;*.pbm;*.pgm;*.ppm;*.sr;*.ras;*.tiff;*.tif;");
 
+	class fetch_error
+		: public std::runtime_error
+	{
+	public:
+		typedef std::runtime_error _Mybase;
+
+		explicit fetch_error(const std::string& _Message, const std::string& _File, size_t _Line, const std::string& _Func)
+			: _Mybase(_Message)
+		{
+			std::ostringstream oss;
+			oss << "Fetch error at " << _Func << std::endl;
+			oss << _File << "(" << _Line << "): " << _Message;
+			msg_ = oss.str();
+		}
+
+		explicit fetch_error(const char *_Message, const char *_File, size_t _Line, char *_Func)
+			: _Mybase(_Message)
+		{
+			std::ostringstream oss;
+			oss << "Fetch error at " << _Func << std::endl;
+			oss << _File << "(" << _Line << "): " << _Message;
+			msg_ = oss.str();
+		}
+
+		~fetch_error() throw() {}
+
+		const char* what() const throw() { return msg_.c_str(); }
+
+	private:
+		std::string msg_;
+	};
+
+#define FETCH_ERROR(msg) throw fetch_error(msg, __FILE__, __LINE__, __FUNCTION__)
+
 	/**
 	 *	@brief	An implementation of image fetcher.
 	 */
@@ -65,13 +99,15 @@ namespace auxiliary
 						files.push_back(entry.path().string());
 				});
 
+				if (files.empty())
+					FETCH_ERROR("Nothing to fetch");
+
 				pos = 0;
 			} else if (boost::filesystem::is_regular_file(p)) {
 				dir = p.branch_path().string();
 				cap.open(path);
-			} else {
-				std::cerr << path << " is not exist!" << std::endl;
-			}
+			} else
+				FETCH_ERROR("Given path does not exist!");
 		}
 
 		///	Grabs the next frame from video file or directory.
