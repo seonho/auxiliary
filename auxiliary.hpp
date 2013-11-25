@@ -42,7 +42,7 @@
 
 /**
  *	@brief	An auxiliary classes and functions.
- *	@note	Implements serveral interface functions for OpenCV
+ *	@note	Implements several interface functions for OpenCV
  */
 namespace auxiliary
 {
