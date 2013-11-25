@@ -76,7 +76,7 @@ namespace auxiliary
 }
 
 #include "circular_buffer.hpp"
-#include "imgproc.hpp"
+#include "imgproc_aux.hpp"
 #include "image_fetcher.hpp"
 #include "integral.hpp"
 #include "pyramid.hpp"

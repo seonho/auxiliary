@@ -1,5 +1,5 @@
 /**
- *	@file		imgproc.hpp
+ *	@file		imgprocext.hpp
  *	@brief		Defines the image class and several utility functions
  *	@author		seonho.oh@gmail.com
  *	@date		2013-07-01
