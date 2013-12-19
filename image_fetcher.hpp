@@ -88,7 +88,7 @@ namespace auxiliary
 	class image_fetcher
 	{
 	public:
-		image_fetcher(std::string path)
+		void open(std::string path)
 		{
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
@@ -108,6 +108,15 @@ namespace auxiliary
 				cap.open(path);
 			} else
 				FETCH_ERROR("Given path does not exist!");
+		}
+
+		void open(int device_id)
+		{
+			if (!cap.open(device_id))
+				FETCH_ERROR("Cannot connect camera");
+
+			boost::filesystem::path full_path( boost::filesystem::current_path() );
+			dir = full_path.string();			
 		}
 
 		///	Grabs the next frame from video file or directory.
