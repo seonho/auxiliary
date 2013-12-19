@@ -52,7 +52,7 @@ namespace auxiliary
 	 *	@brief	Template class for size type
 	 *	@tparam	T	the type of width and height
 	 */
-	template <typename T>
+	/*template <typename T>
 	union Size
 	{
 		typedef arma::uword size_type;
@@ -63,7 +63,11 @@ namespace auxiliary
 			height = h;
 		}
 
-		inline T operator[] (size_type i) {
+		inline T operator[] (size_type i) const {
+			return value[i];
+		}
+
+		inline T& operator[] (size_type i) {
 			return value[i];
 		}
 		
@@ -72,6 +76,23 @@ namespace auxiliary
 			T height;	///< the height
 		};
 		T value[2];
+	};*/
+	template <typename T>
+	class Size : public arma::Col<T>::fixed<2>
+	{
+	public:
+
+		Size(T w = 0, T h = 0)
+		{
+			at(0) = w;
+			at(1) = h;
+		}
+
+		T width() const { return at(0); }
+		T height() const { return at(1); }
+
+		T& width() { return at(0); }
+		T& height() { return at(1); }
 	};
 }
 

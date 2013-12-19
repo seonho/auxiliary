@@ -125,12 +125,12 @@ namespace auxiliary
 	{
 		typedef unsigned char uchar;
 		typedef vec_type::elem_type elem_type;
-		arma::Mat<uchar> out(patchsize.height, patchsize.width);
+		arma::Mat<uchar> out(patchsize.height(), patchsize.width());
 
 		Col<elem_type>::fixed<2> center_ = center;
 
-		center_(0) -= (patchsize.width - 1) * (elem_type)0.5;
-		center_(1) -= (patchsize.height - 1) * (elem_type)0.5;
+		center_(0) -= (patchsize.width() - 1) * (elem_type)0.5;
+		center_(1) -= (patchsize.height() - 1) * (elem_type)0.5;
 
 		int ipx = (int)std::floor(center_(0));
 		int ipy = (int)std::floor(center_(1));
@@ -143,9 +143,9 @@ namespace auxiliary
 				  a21 = (1 - ox) * oy,
 				  a22 =      ox  * oy;
 
-		if (0 <= ipx && ipx + patchsize.width < img.n_cols &&
-			0 <= ipy && ipy + patchsize.height < img.n_rows) {
-			// extracted rectnagle is totally inside the image
+		if (0 <= ipx && ipx + patchsize.width() < img.n_cols &&
+			0 <= ipy && ipy + patchsize.height() < img.n_rows) {
+			// extracted rectangle is totally inside the image
 
 			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
 			//for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
@@ -173,12 +173,12 @@ namespace auxiliary
 				r(0) = 0;
 			} else {
 				r(0) = -ipx;
-				if (r(0) > (int)patchsize.width)
-					r(0) = patchsize.width;
+				if (r(0) > (int)patchsize.width())
+					r(0) = patchsize.width();
 			}
 			
-			if (ipx + (int)patchsize.width < (int)img.n_cols)
-				r(2) = patchsize.width;
+			if (ipx + (int)patchsize.width() < (int)img.n_cols)
+				r(2) = patchsize.width();
 			else {
 				r(2) = (int)img.n_cols - ipx - 1;
 				if (r(2) < 0) {
@@ -192,12 +192,12 @@ namespace auxiliary
 				r(1) = 0;
 			} else {
 				r(1) = -ipy;
-				if (r(1) > (int)patchsize.height)
-					r(1) = patchsize.height;
+				if (r(1) > (int)patchsize.height())
+					r(1) = patchsize.height();
 			}
 
-			if (ipy + (int)patchsize.height < (int)img.n_rows)
-				r(3) = patchsize.height;
+			if (ipy + (int)patchsize.height() < (int)img.n_rows)
+				r(3) = patchsize.height();
 			else {
 				r(3) = (int)img.n_rows - ipy - 1;
 				if (r(3) < 0) {
