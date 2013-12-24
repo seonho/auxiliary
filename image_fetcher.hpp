@@ -93,7 +93,9 @@ namespace auxiliary
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
 				dir = path;
-				std::for_each(boost::filesystem::directory_iterator(p), boost::filesystem::directory_iterator(), [&](boost::filesystem::directory_entry& entry) {
+				std::for_each(boost::filesystem::directory_iterator(p), 
+					boost::filesystem::directory_iterator(), 
+					[&](boost::filesystem::directory_entry& entry) {
 					if (boost::filesystem::is_regular_file(entry.status()) && 
 						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
 						files.push_back(entry.path().string());

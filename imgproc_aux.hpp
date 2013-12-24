@@ -48,9 +48,7 @@
 
 namespace auxiliary
 {
-	/**
-	 *	@brief	A template image class
-	 */
+	//!	@brief	A template image class
 	template <typename T>
 	class image : public Mat<T>
 	{
@@ -102,7 +100,7 @@ namespace auxiliary
 		}
 	};
 
-	/// Image class
+	//! Defines traditional Image type
 	typedef image<unsigned char>	Image;
 
 	/**
@@ -319,10 +317,8 @@ namespace auxiliary
 		return out;
 	}
 
-	/**
-	 *	@brief	tocvMat
-	 */
-	//void imshow(const char* name, const Image& img)
+	
+	//!	@brief	Convert Image type to the cv::Mat type
 	cv::Mat tocvMat(const Image& img)
 	{
 		cv::Mat out(img.n_rows, img.n_cols, CV_8U);
