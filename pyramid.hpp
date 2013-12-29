@@ -89,6 +89,7 @@ namespace auxiliary
 			break;
 		case constant:
 			p = -1;
+                break;
 		default:
 			break;
 		};

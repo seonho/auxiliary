@@ -48,7 +48,7 @@ namespace auxiliary
 	template <typename T1, typename T2, typename T3>
 	void integral(const image<T1>& img, image<T2>& sum, image<T3>& sqsum)
 	{
-		typedef image<T1>::size_type	size_type;
+		typedef typename image<T1>::size_type	size_type;
 
 		// allocate images
 		sum.resize(img.width(), img.height());

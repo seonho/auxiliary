@@ -53,21 +53,21 @@ namespace auxiliary
 	 *	@tparam	T	the type of width and height
 	 */
 	template <typename T>
-	class Size : public arma::Col<T>::fixed<2>
+	class Size : public arma::Col<T>::template fixed<2>
 	{
 	public:
 
 		Size(T w = 0, T h = 0)
 		{
-			at(0) = w;
-			at(1) = h;
+			this->at(0) = w;
+			this->at(1) = h;
 		}
 
-		T width() const { return at(0); }
-		T height() const { return at(1); }
+		T width() const     { return this->at(0); }
+		T height() const    { return this->at(1); }
 
-		T& width() { return at(0); }
-		T& height() { return at(1); }
+		T& width()          { return this->at(0); }
+		T& height()         { return this->at(1); }
 	};
 }
 

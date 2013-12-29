@@ -39,12 +39,17 @@
 #pragma once
 
 #include <armadillo>
+using namespace arma;
 
+#ifdef _MSC_VER
 #include <mycv.hpp>	// for OpenCV
 #pragma comment(lib, OPENCV_LIB_EXPAND("core"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("imgproc"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("highgui"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("video"))
+#else
+#include <opencv2/opencv.hpp>
+#endif
 
 namespace auxiliary
 {
@@ -59,38 +64,44 @@ namespace auxiliary
 		typedef arma::uword							size_type;
 
 		/// Constructor
-		image(): Mat() {}
+		image(): Mat<T>() {}
 
 		/// Constructor
-		image(const Mat& m): Mat(m) {}
+		image(const Mat<T>& m): Mat<T>(m) {}
 
 		/// Constructor
-		image(const size_type width, const size_type height) : Mat(height, width) {}
+		image(const size_type width, const size_type height) : Mat<T>(height, width) {}
 		
 		/// Constructor
 		template <typename DT>
-		image(const Mat<DT>& m): Mat(m.n_rows, m.n_cols)
+		image(const Mat<DT>& m): Mat<T>(m.n_rows, m.n_cols)
 		{
-			uchar* ptr = memptr();
+			unsigned char* ptr = this->memptr();
 			// type conversion
+#ifdef _MSC_VER
 			concurrency::parallel_for(size_type(0), m.n_elem, [&](size_type i) {
+#else
+            for (size_type i = 0 ; i < m.n_elem ; i++)
+#endif
 				ptr[i] = arma_ext::saturate_cast<uchar>(m(i));
+#ifdef _MSC_VER
 			});
+#endif
 		}
 
 		/// Dummy function
 		void release() {}
 
 		/// Get image width
-		inline size_type width() const { return n_cols; }
+		inline size_type width() const { return this->n_cols; }
 
 		/// Get image height
-		inline size_type height() const { return n_rows; }
+		inline size_type height() const { return this->n_rows; }
 
 		/// Resize image
 		inline void resize(size_type width, size_type height)
 		{
-			return set_size(height, width);
+			return this->set_size(height, width);
 		}
 
 		// Operator overloading
@@ -122,10 +133,10 @@ namespace auxiliary
 	static arma::Mat<unsigned char> getRectSubPix(const Image& img, Size<arma_ext::uword> patchsize, const vec_type center)
 	{
 		typedef unsigned char uchar;
-		typedef vec_type::elem_type elem_type;
+		typedef typename vec_type::elem_type elem_type;
 		arma::Mat<uchar> out(patchsize.height(), patchsize.width());
 
-		Col<elem_type>::fixed<2> center_ = center;
+        typename arma::Col<elem_type>::template fixed<2> center_ = center;
 
 		center_(0) -= (patchsize.width() - 1) * (elem_type)0.5;
 		center_(1) -= (patchsize.height() - 1) * (elem_type)0.5;
@@ -144,9 +155,11 @@ namespace auxiliary
 		if (0 <= ipx && ipx + patchsize.width() < img.n_cols &&
 			0 <= ipy && ipy + patchsize.height() < img.n_rows) {
 			// extracted rectangle is totally inside the image
-
+#ifdef _MSC_VER
 			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
-			//for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+#else
+            for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+#endif
 				uchar* ptr = out.colptr(j);
 				const uchar* src = img.colptr(ipx + j) + ipy;
 				arma_ext::size_type i;
@@ -157,8 +170,11 @@ namespace auxiliary
 															src[i + img.n_rows    ] * a12 +
 															src[i + img.n_rows + 1] * a22);
 				}
+#ifdef _MSC_VER
 			});
-			//}
+#else
+			}
+#endif
 		} else {
 			arma::ivec4 r;
 
@@ -257,14 +273,22 @@ namespace auxiliary
 		mat h(kernel_size, kernel_size);
 		double sz = (h.n_rows - 1) / -2.0;
 		double denom = 2 * sigma * sigma;
+#ifdef _MSC_VER
 		concurrency::parallel_for(size_type(0), h.n_cols, [&] (size_type c) {
+#else
+        for (size_type c = 0 ; c < h.n_cols ; c++) {
+#endif
 			double x = sz + c;
 			for (size_type r = 0 ; r < h.n_rows ; r++) {
 				double y = sz + r;
 				double arg = -(x * x + y * y) / denom;
 				h(r, c) = exp(arg);
 			}
+#ifdef _MSC_VER
 		});
+#else
+        }
+#endif
 
 		umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
 		if (arma_ext::any(mask)) {
@@ -322,7 +346,7 @@ namespace auxiliary
 	cv::Mat tocvMat(const Image& img)
 	{
 		cv::Mat out(img.n_rows, img.n_cols, CV_8U);
-		Image t = img.t();
+        Image t = img.t().eval();
 		memcpy(out.data, t.memptr(), t.n_elem);
 
 		//cv::imshow(name, out);
