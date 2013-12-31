@@ -39,38 +39,6 @@
 #pragma once
 
 #include "arma_ext.hpp"
-
-/**
- *	@brief	An auxiliary classes and functions.
- *	@note	Implements several interface functions for OpenCV
- */
-namespace auxiliary
-{
-	using namespace arma;
-
-	/**
-	 *	@brief	Template class for size type
-	 *	@tparam	T	the type of width and height
-	 */
-	template <typename T>
-	class Size : public arma::Col<T>::template fixed<2>
-	{
-	public:
-
-		Size(T w = 0, T h = 0)
-		{
-			this->at(0) = w;
-			this->at(1) = h;
-		}
-
-		T width() const     { return this->at(0); }
-		T height() const    { return this->at(1); }
-
-		T& width()          { return this->at(0); }
-		T& height()         { return this->at(1); }
-	};
-}
-
 #include "circular_buffer.hpp"
 #include "imgproc_aux.hpp"
 #include "image_fetcher.hpp"
