@@ -38,9 +38,6 @@
 
 #pragma once
 
-#include <armadillo>
-using namespace arma;
-
 #ifdef _MSC_VER
 #include <mycv.hpp>	// for OpenCV
 #pragma comment(lib, OPENCV_LIB_EXPAND("core"))
@@ -50,6 +47,9 @@ using namespace arma;
 #else
 #include <opencv2/opencv.hpp>
 #endif
+
+#include <armadillo>
+using namespace arma;
 
 #include "arma_ext.hpp"
 
