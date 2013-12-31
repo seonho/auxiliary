@@ -294,25 +294,30 @@ namespace auxiliary
 		const size_type multiplier = 6;
 		size_type kernel_size = size_type(multiplier * sigma);
 		
-		mat h(kernel_size, kernel_size);
-		double sz = (h.n_rows - 1) / -2.0;
-		double denom = 2 * sigma * sigma;
-#ifdef _MSC_VER
-		concurrency::parallel_for(size_type(0), h.n_cols, [&] (size_type c) {
-#else
-        for (size_type c = 0 ; c < h.n_cols ; c++) {
-#endif
-			double x = sz + c;
-			for (size_type r = 0 ; r < h.n_rows ; r++) {
-				double y = sz + r;
-				double arg = -(x * x + y * y) / denom;
-				h(r, c) = exp(arg);
-			}
-#ifdef _MSC_VER
-		});
-#else
+		static mat h; // static gaussian kernel storage
+        
+        if (h.n_rows != kernel_size) {
+            h.resize(kernel_size, kernel_size);
+            double sz = (h.n_rows - 1) / -2.0;
+            double denom = 2 * sigma * sigma;
+            
+    #ifdef _MSC_VER
+            concurrency::parallel_for(size_type(0), h.n_cols, [&] (size_type c) {
+    #else
+            for (size_type c = 0 ; c < h.n_cols ; c++) {
+    #endif
+                double x = sz + c;
+                for (size_type r = 0 ; r < h.n_rows ; r++) {
+                    double y = sz + r;
+                    double arg = -(x * x + y * y) / denom;
+                    h.at(r, c) = exp(arg);
+                }
+    #ifdef _MSC_VER
+            });
+    #else
+            }
+    #endif
         }
-#endif
 
 		umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
 		if (arma_ext::any(mask)) {
@@ -325,44 +330,10 @@ namespace auxiliary
 		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
 
 		// convolution
-		//mat tmp = conv_to<mat>::from(img);
-		//double t = (double)cv::getTickCount();
 		mat C = arma_ext::conv2(conv_to<mat>::from(img), h);
-		//t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
-		//std::cout << t << std::endl;
-
 		C = C(span(shift, C.n_rows - shift), span(shift, C. n_cols - shift));
 
-		/*
-		// separable convolution
-		{
-			mat h(kernel_size, 1);
-			double sz = (h.n_rows - 1) / -2.0;
-			double denom = 2 * sigma * sigma;
-			concurrency::parallel_for(size_type(0), h.n_elem, [&] (size_type c) {
-				double x = sz + c;
-				double arg = -(x * x) / denom;
-				h(c) = exp(arg);
-			});
-
-			h /= sqrt(accu(h * h.t()));
-			//mat H = h * trans(h);
-			//double sum = sqrt(accu());
-			//h /= sum;
-
-			// convolution
-			//double t = (double)cv::getTickCount();
-			mat D = arma_ext::separable_conv(conv_to<mat>::from(img), h, h);
-			//t = ((double)cv::getTickCount() - t)/cv::getTickFrequency();
-			//std::cout << t << std::endl;
-
-			double val = accu(C - D);
-			std::cout << val << std::endl;
-		}
-		*/
-
-		Image out(C);
-		return out;
+		return Image(C);
 	}
 
 	
