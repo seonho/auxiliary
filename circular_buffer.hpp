@@ -40,9 +40,7 @@
 
 namespace auxiliary
 {
-	/**
-	 *	@brief	A minimal implementation of circular buffer class.
-	 */
+	//!	A minimal implementation of circular buffer class.
 	template <typename T>
 	class circular_buffer {
 		typedef T			value_type;

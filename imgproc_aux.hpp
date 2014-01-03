@@ -77,7 +77,7 @@ namespace auxiliary
 		T& height()         { return this->at(1); }
 	};
     
-	//!	@brief	A template image class
+	//!	A template image class.
 	template <typename T>
 	class image : public Mat<T>
 	{
@@ -337,7 +337,7 @@ namespace auxiliary
 	}
 
 	
-	//!	@brief	Convert Image type to the cv::Mat type
+	//!	Convert Image type to the cv::Mat type.
 	cv::Mat tocvMat(const Image& img)
 	{
 		cv::Mat out(img.n_rows, img.n_cols, CV_8U);

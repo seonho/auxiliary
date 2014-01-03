@@ -43,11 +43,13 @@
 #include <boost/filesystem.hpp>	// for filesystem access
 using namespace boost::filesystem;
 
+//!	An auxiliary interface functions for armadillo library.
 namespace auxiliary
 {
 	/// supporting file formats
 	static std::string supported_file_formats("*.bmp;*.dib;*.jpeg;*.jpg;*.jpe;*.jp2;*.png;*.pbm;*.pgm;*.ppm;*.sr;*.ras;*.tiff;*.tif;");
 
+	//!	defines fetch error exception
 	class fetch_error
 		: public std::runtime_error
 	{
@@ -82,12 +84,11 @@ namespace auxiliary
 
 #define FETCH_ERROR(msg) throw fetch_error(msg, __FILE__, __LINE__, __FUNCTION__)
 
-	/**
-	 *	@brief	An implementation of image fetcher.
-	 */
+	//!	An implementation of image fetcher.
 	class image_fetcher
 	{
 	public:
+		//!	Open file or directory
 		void open(std::string path)
 		{
 			boost::filesystem::path p(path);
@@ -112,6 +113,7 @@ namespace auxiliary
 				FETCH_ERROR("Given path does not exist!");
 		}
 
+		//!	Connect to device
 		void open(int device_id)
 		{
 			if (!cap.open(device_id))
@@ -121,7 +123,7 @@ namespace auxiliary
 			dir = full_path.string();			
 		}
 
-		///	Grabs the next frame from video file or directory.
+		//!	Grabs the next frame from video file or directory.
 		bool grab()
 		{
 			if (cap.isOpened()) return cap.grab();
@@ -129,7 +131,7 @@ namespace auxiliary
 			return (pos < files.size());
 		}
 
-		///	Decodes and returns the grabbed video frame or image.
+		//!	Decodes and returns the grabbed video frame or image.
 		void retrieve(Image& image)
 		{
 			cv::Mat frame;
@@ -144,7 +146,7 @@ namespace auxiliary
 			image = bgr2gray(frame);
 		}
 
-		///	Get current directory
+		//!	Get current directory
 		inline std::string current_directory() const
 		{
 			return dir;
