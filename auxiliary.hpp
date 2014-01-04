@@ -1,6 +1,6 @@
 /**
  *	@file		auxiliary.hpp
- *	@brief		An implemenation of auxiliary namespace
+ *	@brief		An implemenation of #auxiliary namespace
  *	@author		seonho.oh@gmail.com
  *	@date		2013-07-01
  *	@version	1.0
