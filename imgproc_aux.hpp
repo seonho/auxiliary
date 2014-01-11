@@ -79,7 +79,7 @@ namespace auxiliary
     
 	//!	A template image class.
 	template <typename T>
-	class image : public Mat<T>
+	class Image : public Mat<T>
 	{
 	public:
 		typedef T									elem_type;	///< the type of elements stored in the matrix
@@ -88,26 +88,26 @@ namespace auxiliary
 		typedef arma::uword							size_type;
 
 		/// Constructor
-		image(): Mat<T>() {}
+		Image(): Mat<T>() {}
 
 		/// Constructor
-		image(const Mat<T>& m): Mat<T>(m) {}
+		Image(const Mat<T>& m): Mat<T>(m) {}
 
 		/// Constructor
-		image(const size_type width, const size_type height) : Mat<T>(height, width) {}
+		Image(const size_type width, const size_type height) : Mat<T>(height, width) {}
 		
 		/// Constructor
 		template <typename DT>
-		image(const Mat<DT>& m): Mat<T>(m.n_rows, m.n_cols)
+		Image(const Mat<DT>& m): Mat<T>(m.n_rows, m.n_cols)
 		{
-			unsigned char* ptr = this->memptr();
+			T* ptr = this->memptr();
 			// type conversion
 #ifdef _MSC_VER
 			concurrency::parallel_for(size_type(0), m.n_elem, [&](size_type i) {
 #else
             for (size_type i = 0 ; i < m.n_elem ; i++)
 #endif
-				ptr[i] = arma_ext::saturate_cast<uchar>(m(i));
+				ptr[i] = arma_ext::saturate_cast<T>(m(i));
 #ifdef _MSC_VER
 			});
 #endif
@@ -135,9 +135,6 @@ namespace auxiliary
 		}
 	};
 
-	//! Defines traditional Image type
-	typedef image<unsigned char>	Image;
-
 	/**
 	 *	@brief	Retrieves a pixel rectangle from an image with sub-pixel accuracy.
 	 *	@param img source image
@@ -153,12 +150,11 @@ namespace auxiliary
 	 *			While the center of the rectangle must be inside the image, parts of the rectangle may be outside.
 	 *			In this case, extrapolate the pixel values by replication border condition.
 	 */
-	template <typename vec_type>
-	static arma::Mat<unsigned char> getRectSubPix(const Image& img, Size<arma_ext::uword> patchsize, const vec_type center)
+	template <typename pixel_type, typename vec_type>
+	static arma::Mat<pixel_type> getRectSubPix(const Image<pixel_type>& img, Size<arma_ext::uword> patchsize, const vec_type center)
 	{
-		typedef unsigned char uchar;
 		typedef typename vec_type::elem_type elem_type;
-		arma::Mat<uchar> out(patchsize.height(), patchsize.width());
+		arma::Mat<pixel_type> out(patchsize.height(), patchsize.width());
 
         typename arma::Col<elem_type>::template fixed<2> center_ = center;
 
@@ -184,12 +180,12 @@ namespace auxiliary
 #else
             for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
 #endif
-				uchar* ptr = out.colptr(j);
-				const uchar* src = img.colptr(ipx + j) + ipy;
+				pixel_type* ptr = out.colptr(j);
+				const pixel_type* src = img.colptr(ipx + j) + ipy;
 				arma_ext::size_type i;
 				for (i = 0 ; i < out.n_rows ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<uchar>(src[i                 ] * a11 +
+					ptr[i] = arma_ext::saturate_cast<pixel_type>(src[i                 ] * a11 +
 															src[i + 1             ] * a21 +
 															src[i + img.n_rows    ] * a12 +
 															src[i + img.n_rows + 1] * a22);
@@ -250,33 +246,34 @@ namespace auxiliary
 			elem_type b1 = (elem_type)1.0 - ox,
 					  b2 = ox;
 
-			const uchar* src1 = img.colptr(sox) + soy;
+			const pixel_type* src1 = img.colptr(sox) + soy;
 			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
-				uchar* ptr = out.colptr(j);
-				const uchar* src2 = src1 + img.n_rows;
+				pixel_type* ptr = out.colptr(j);
+				const pixel_type* src2 = src1 + img.n_rows;
 
 				if ((int)j < r(0) || (int)j >= r(2))
 					src2 -= img.n_rows;
 								
 				arma_ext::size_type i = 0;
 				for (; i < (arma_ext::size_type)r(1) ; i++)
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[r(1)] * b1 + src2[r(1)] * b2);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[r(1)] * b1 + src2[r(1)] * b2);
 
 				for ( ; i < (arma_ext::size_type)r(3) ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[i    ] * a11 +
+					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[i    ] * a11 +
 															src1[i + 1] * a21 +
 															src2[i    ] * a12 +
 															src2[i + 1] * a22);
 				}
 
 				for ( ; i < out.n_rows ; i++)
-					ptr[i] = arma_ext::saturate_cast<uchar>(src1[r(3)] * b1 + src2[r(3)] * b2);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[r(3)] * b1 + src2[r(3)] * b2);
 
 				if ((int)j < r(2))
 					src1 = src2;
 			}
 		}
+                                      
 		return out;
 	}
 		
@@ -286,9 +283,10 @@ namespace auxiliary
 	 *	@param	sigma	The sigma for gaussian kernel.
 	 *	@return	The blurred image.
 	 */
-	Image blur(const Image& img, double sigma)
+    template <typename pixel_type>
+	Image<pixel_type> blur(const Image<pixel_type>& img, double sigma)
 	{
-		typedef Image::size_type size_type;
+		typedef typename Image<pixel_type>::size_type size_type;
 
 		// gaussian kernel
 		const size_type multiplier = 6;
@@ -333,16 +331,17 @@ namespace auxiliary
 		mat C = arma_ext::conv2(conv_to<mat>::from(img), h);
 		C = C(span(shift, C.n_rows - shift), span(shift, C. n_cols - shift));
 
-		return Image(C);
+		return Image<pixel_type>(C);
 	}
 
 	
 	//!	Convert Image type to the cv::Mat type.
-	cv::Mat tocvMat(const Image& img)
+    template <typename pixel_type>
+	cv::Mat tocvMat(const Image<pixel_type>& img)
 	{
-		cv::Mat out(img.n_rows, img.n_cols, CV_8U);
-        Image t = img.t().eval();
-		memcpy(out.data, t.memptr(), t.n_elem);
+		cv::Mat out(img.n_rows, img.n_cols, cv::DataType<pixel_type>::type); //!
+        Image<pixel_type> t = img.t().eval();
+		memcpy(out.data, t.memptr(), sizeof(pixel_type) * t.n_elem);
 
 		//cv::imshow(name, out);
 		return out;
@@ -354,10 +353,11 @@ namespace auxiliary
 	 *	@return	grayscale intensity image
 	 *	@see	http://www.mathworks.co.kr/kr/help/images/ref/rgb2gray.html
 	 */
-	Image	bgr2gray(const cv::Mat& img)
+    template <typename pixel_type>
+	Image<pixel_type>	bgr2gray(const cv::Mat& img)
 	{
-		arma::Mat<uchar> gray(img.cols, img.rows);
-		uchar* ptr = gray.memptr();
+		arma::Mat<pixel_type> gray(img.cols, img.rows);
+		pixel_type* ptr = gray.memptr();
 #if 0
 		concurrency::parallel_for(0, img.rows, [&](int r) {
 		//for (int r = 0 ; r < img.rows ; r++) {
@@ -370,9 +370,9 @@ namespace auxiliary
 #else
 		cv::Mat bw;
 		cv::cvtColor(img, bw, CV_BGR2GRAY);
-		memcpy(ptr, bw.data, bw.total());
+		memcpy(ptr, bw.data, sizeof(pixel_type) * bw.total());
 #endif
 
-		return Image(gray.t());
+		return Image<pixel_type>(gray.t());
 	}
 }

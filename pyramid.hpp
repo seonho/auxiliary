@@ -143,7 +143,7 @@ namespace auxiliary
 
 		// gaussian convolution with 
 		for (arma::uword x = 0 ; x < out.n_cols ; x++) {
-			uchar* dst = out.colptr(x);
+			typename T2::elem_type* dst = out.colptr(x);
 
 			// vertical convolution and decimation
 			for ( ; sx <= (int)x * 2 + 2 ; sx++) {
@@ -151,7 +151,7 @@ namespace auxiliary
 				int* colptr = col.memptr();
 
 				// interpolate border
-				const uchar* src = in.colptr(borderInterpolate(sx, (int)in.n_cols));
+				const typename T2::elem_type* src = in.colptr(borderInterpolate(sx, (int)in.n_cols));
 
 				colptr[0] = src[lptr[2]] * 6 + (src[lptr[1]] + src[lptr[3]]) * 4 + (src[lptr[0]] + src[lptr[4]]);
 

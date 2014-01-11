@@ -132,7 +132,8 @@ namespace auxiliary
 		}
 
 		//!	Decodes and returns the grabbed video frame or image.
-		void retrieve(Image& image)
+        template <typename pixel_type>
+		void retrieve(Image<pixel_type>& image)
 		{
 			cv::Mat frame;
 			if (cap.isOpened()) {
@@ -141,9 +142,14 @@ namespace auxiliary
 			} else {
 				//std::cout << files[pos].c_str() << " "; /*std::endl;*/
 				frame = cv::imread(files[pos++]);
+                
+#ifdef USE_16BIT_IMAGE
+                // simulate different image format
+                frame.clone().convertTo(frame, CV_16U);
+#endif
 			}
 
-			image = bgr2gray(frame);
+			image = bgr2gray<pixel_type>(frame);
 		}
 
 		//!	Get current directory

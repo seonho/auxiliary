@@ -46,9 +46,9 @@ namespace auxiliary
 	 *	@param [out] sqsum	squared integral image
 	*/
 	template <typename T1, typename T2, typename T3>
-	void integral(const image<T1>& img, image<T2>& sum, image<T3>& sqsum)
+	void integral(const Image<T1>& img, Image<T2>& sum, Image<T3>& sqsum)
 	{
-		typedef typename image<T1>::size_type	size_type;
+		typedef typename Image<T1>::size_type	size_type;
 
 		// allocate images
 		sum.resize(img.width(), img.height());
