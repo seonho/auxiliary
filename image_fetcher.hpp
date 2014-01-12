@@ -39,9 +39,14 @@
 
 #pragma once
 
+#ifdef USE_OPENCV
 #include <opencv2/opencv.hpp>
+#endif
+
+#ifdef USE_BOOST
 #include <boost/filesystem.hpp>	// for filesystem access
 using namespace boost::filesystem;
+#endif
 
 //!	An auxiliary interface functions for armadillo library.
 namespace auxiliary
@@ -84,6 +89,14 @@ namespace auxiliary
 
 #define FETCH_ERROR(msg) throw fetch_error(msg, __FILE__, __LINE__, __FUNCTION__)
 
+    inline char PathSeparator()
+    {
+#if defined(_WIN32) || defined(_WIN64)
+        return '\\';
+#else
+        return '/';
+#endif
+    }
 	//!	An implementation of image fetcher.
 	class image_fetcher
 	{
@@ -91,78 +104,128 @@ namespace auxiliary
 		//!	Open file or directory
 		void open(std::string path)
 		{
+#if defined(USE_BOOST) && defined(USE_OPENCV)
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
-				dir = path;
+				dir_ = path;
 				std::for_each(boost::filesystem::directory_iterator(p), 
 					boost::filesystem::directory_iterator(), 
 					[&](boost::filesystem::directory_entry& entry) {
 					if (boost::filesystem::is_regular_file(entry.status()) && 
 						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
-						files.push_back(entry.path().string());
+						files_.push_back(entry.path().string());
 				});
 
-				if (files.empty())
+				if (files_.empty())
 					FETCH_ERROR("Nothing to fetch");
 
-				pos = 0;
+				pos_ = 0;
 			} else if (boost::filesystem::is_regular_file(p)) {
-				dir = p.branch_path().string();
-				cap.open(path);
+				cap_.open(path);
+                dir_ = path.substr(0, path.find_last_of(PathSeparator())); // video directory
+            } else
+				FETCH_ERROR("Given path does not exist!");
+#elif defined(USE_OPENCV)
+            cap_.open(path);
+            
+            if (cap_.isOpened())
+                dir_ = path.substr(0, path.find_last_of(PathSeparator())); // video directory
+            else
+				FETCH_ERROR("Given path does not exist!");
+#else
+            return open_pack(path);
+#endif
+		}
+        
+        void open_pack(std::string path)
+        {
+            fin_.open(path, std::ios::binary);
+            
+            if (fin_.is_open()) {
+                // try to read pack file
+                cout << "Read pack file" << endl;
+                fin_.read((char *)&width_, sizeof(unsigned int));
+                fin_.read((char *)&height_, sizeof(unsigned int));
+                fin_.read((char *)&numframes_, sizeof(unsigned int));
+                dir_ = path.substr(0, path.find_last_of(PathSeparator()));
+                pos_ = 0;
 			} else
 				FETCH_ERROR("Given path does not exist!");
-		}
+        }
 
 		//!	Connect to device
 		void open(int device_id)
 		{
-			if (!cap.open(device_id))
+#ifdef USE_OPENCV
+			if (!cap_.open(device_id))
 				FETCH_ERROR("Cannot connect camera");
-
+            
+#ifdef USE_BOOST
 			boost::filesystem::path full_path( boost::filesystem::current_path() );
-			dir = full_path.string();			
+			dir_ = full_path.string();
+#else
+            
+#endif
+            
+#endif
 		}
 
 		//!	Grabs the next frame from video file or directory.
 		bool grab()
 		{
-			if (cap.isOpened()) return cap.grab();
-
-			return (pos < files.size());
+#ifdef USE_OPENCV
+			if (cap_.isOpened()) return cap_.grab();
+#endif
+			return files_.empty() ? pos_ < numframes_ : (pos_ < files_.size());
 		}
 
 		//!	Decodes and returns the grabbed video frame or image.
         template <typename pixel_type>
 		void retrieve(Image<pixel_type>& image)
 		{
+#ifdef USE_OPENCV
 			cv::Mat frame;
-			if (cap.isOpened()) {
-				cap.retrieve(frame);
-				//std::cout << "frame " << pos++ << " "; /*std::endl;*/
-			} else {
+            
+			if (cap_.isOpened()) {
+				cap_.retrieve(frame);
+                image = bgr2gray<pixel_type>(frame);
+			} else if(!files_.empty()) {
 				//std::cout << files[pos].c_str() << " "; /*std::endl;*/
-				frame = cv::imread(files[pos++]);
-                
+				frame = cv::imread(files_[pos_++]);
+
 #ifdef USE_16BIT_IMAGE
                 // simulate different image format
+                std::cout << "Simulate 16 bit image" << std::endl;
                 frame.clone().convertTo(frame, CV_16U);
 #endif
-			}
-
-			image = bgr2gray<pixel_type>(frame);
+                image = bgr2gray<pixel_type>(frame);
+			} else if (fin_.is_open()) {
+#else
+            if (fin_.is_open()) {
+#endif
+                Image<pixel_type> temp(height_, width_);
+                fin_.read((char *)temp.memptr(), sizeof(pixel_type) * width_ * height_);
+                image = Image<pixel_type>(temp.t());
+                ++pos_;
+            }
 		}
 
 		//!	Get current directory
 		inline std::string current_directory() const
 		{
-			return dir;
+			return dir_;
 		}
 
 	private:
-		cv::VideoCapture cap;			///< video capture
-
-		std::string dir;				///< the current directory
-		std::vector<std::string> files;	///< the image file names
-		size_t pos;						///< the current frame number
+#ifdef USE_OPENCV
+		cv::VideoCapture cap_;              ///< video capture
+#endif
+        std::ifstream               fin_;   ///<
+        unsigned int                width_, height_;
+        unsigned int                numframes_;
+        
+		std::string                 dir_;   ///< the current directory
+		std::vector<std::string>    files_;	///< the image file names
+		size_t                      pos_;	///< the current frame number
 	};
 }

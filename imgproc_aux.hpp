@@ -38,6 +38,8 @@
 
 #pragma once
 
+#ifdef USE_OPENCV
+
 #ifdef _MSC_VER
 #include <mycv.hpp>	// for OpenCV
 #pragma comment(lib, OPENCV_LIB_EXPAND("core"))
@@ -46,6 +48,8 @@
 #pragma comment(lib, OPENCV_LIB_EXPAND("video"))
 #else
 #include <opencv2/opencv.hpp>
+#endif
+
 #endif
 
 #include <armadillo>
@@ -334,7 +338,7 @@ namespace auxiliary
 		return Image<pixel_type>(C);
 	}
 
-	
+#ifdef USE_OPENCV
 	//!	Convert Image type to the cv::Mat type.
     template <typename pixel_type>
 	cv::Mat tocvMat(const Image<pixel_type>& img)
@@ -375,4 +379,5 @@ namespace auxiliary
 
 		return Image<pixel_type>(gray.t());
 	}
+#endif
 }
