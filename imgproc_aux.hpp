@@ -304,7 +304,7 @@ namespace auxiliary
             double denom = 2 * sigma * sigma;
             
     #ifdef _MSC_VER
-            concurrency::parallel_for(size_type(0), h.n_cols, [&] (size_type c) {
+            concurrency::parallel_for(size_type(0), h.n_cols, [&](size_type c) {
     #else
             for (size_type c = 0 ; c < h.n_cols ; c++) {
     #endif

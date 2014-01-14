@@ -108,13 +108,23 @@ namespace auxiliary
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
 				dir_ = path;
+#if __cplusplus >= 201103L || defined(_MSC_VER)
 				std::for_each(boost::filesystem::directory_iterator(p), 
 					boost::filesystem::directory_iterator(), 
 					[&](boost::filesystem::directory_entry& entry) {
+#else
+				boost::filesystem::directory_iterator end;
+				for (boost::filesystem::directory_iterator iter(p) ; iter != end ; ++iter) {
+					boost::filesystem::directory_entry& entry = *iter;
+#endif
 					if (boost::filesystem::is_regular_file(entry.status()) && 
 						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
 						files_.push_back(entry.path().string());
+#if __cplusplus >= 201103L || defined(_MSC_VER)
 				});
+#else
+				}
+#endif
 
 				if (files_.empty())
 					FETCH_ERROR("Nothing to fetch");
