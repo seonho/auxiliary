@@ -129,7 +129,7 @@ namespace auxiliary
 		/// Resize image
 		inline void resize(size_type width, size_type height)
 		{
-			return this->set_size(height, width);
+			this->set_size(height, width);
 		}
 
 		// Operator overloading

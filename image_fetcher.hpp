@@ -102,7 +102,7 @@ namespace auxiliary
 	{
 	public:
 		//!	Open file or directory
-		void open(std::string path)
+		void open(const std::string& path)
 		{
 #if defined(USE_BOOST) && defined(USE_OPENCV)
 			boost::filesystem::path p(path);
@@ -147,9 +147,9 @@ namespace auxiliary
 #endif
 		}
         
-        void open_pack(std::string path)
+        void open_pack(const std::string& path)
         {
-            fin_.open(path, std::ios::binary);
+            fin_.open(path.c_str(), std::ios::binary); // std::string param is supported C++11
             
             if (fin_.is_open()) {
                 // try to read pack file
