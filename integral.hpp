@@ -79,20 +79,32 @@ namespace auxiliary
 			T2 it = img(0, x);
 			s += it;
 			sq += (T3)it * it;
-			sum(0, x) = s;
-			sqsum(0, x) = sq;
+			sum.at(0, x) = s;
+			sqsum.at(0, x) = sq;
 		}
+
+		T2* sptr0 = sum.colptr(0);
+		T3* sqptr0 = sqsum.colptr(0);
 
 		for (size_type x = 1 ; x < img.width() ; x++) {
 			T2 s = 0;
 			T3 sq = 0;
+			
+			T2* sptr1 = sum.colptr(x);
+			T3* sqptr1 = sqsum.colptr(x);
+
 			for (size_type y = 0 ; y < img.height() ; y++) {
 				T2 it = img(y, x);
 				s += it;
 				sq += (T3)it * it;
-				sum(y, x) = sum(y, x - 1) + s;
-				sqsum(y, x) = sqsum(y, x - 1) + sq;
+				//sum.at(y, x) = sum.at(y, x - 1) + s;
+				sptr1[y] = sptr0[y] + s;
+				//sqsum.at(y, x) = sqsum.at(y, x - 1) + sq;
+				sqptr1[y] = sqptr0[y] + sq;
 			}
+
+			sptr0 = sptr1;
+			sqptr0 = sqptr1;
 		}
 	}
 }

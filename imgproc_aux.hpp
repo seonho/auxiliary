@@ -308,26 +308,29 @@ namespace auxiliary
     #else
             for (size_type c = 0 ; c < h.n_cols ; c++) {
     #endif
+				double* hptr = h.colptr(c);
                 double x = sz + c;
                 for (size_type r = 0 ; r < h.n_rows ; r++) {
                     double y = sz + r;
                     double arg = -(x * x + y * y) / denom;
-                    h.at(r, c) = exp(arg);
+                    hptr[r] = exp(arg);
                 }
     #ifdef _MSC_VER
             });
     #else
             }
     #endif
-        }
 
-		umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
-		if (arma_ext::any(mask)) {
-			for (uword i = 0 ; i < h.n_elem ; i++)
-				if (mask(i)) h(i) = 0;
+			umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
+			if (arma_ext::any(mask)) {
+				uword* mptr = mask.memptr();
+				double* hptr = h.memptr();
+				for (uword i = 0 ; i < h.n_elem ; i++)
+					if (mptr[i]) hptr[i] = 0;
+			}
+
+			h /= accu(h);
 		}
-
-		h /= accu(h);
 
 		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
 
