@@ -106,14 +106,20 @@ namespace auxiliary
 		{
 			T* ptr = this->memptr();
 			// type conversion
-#ifdef _MSC_VER
+#if defined(USE_PPL)
 			concurrency::parallel_for(size_type(0), m.n_elem, [&](size_type i) {
+#elif defined(USE_OPENMP)
+	#pragma omp parallel for
+            for (int si = 0 ; si < (int)m.n_elem ; si++) {
+				size_type i = (size_type)si;
 #else
             for (size_type i = 0 ; i < m.n_elem ; i++)
 #endif
 				ptr[i] = arma_ext::saturate_cast<T>(m(i));
-#ifdef _MSC_VER
+#if defined(USE_PPL)
 			});
+#elif defined(USE_OPENMP)
+			}
 #endif
 		}
 
@@ -158,6 +164,7 @@ namespace auxiliary
 	static arma::Mat<pixel_type> getRectSubPix(const Image<pixel_type>& img, Size<arma_ext::uword> patchsize, const vec_type center)
 	{
 		typedef typename vec_type::elem_type elem_type;
+		typedef typename arma_ext::size_type size_type;
 		arma::Mat<pixel_type> out(patchsize.height(), patchsize.width());
 
         typename arma::Col<elem_type>::template fixed<2> center_ = center;
@@ -179,14 +186,18 @@ namespace auxiliary
 		if (0 <= ipx && ipx + patchsize.width() < img.n_cols &&
 			0 <= ipy && ipy + patchsize.height() < img.n_rows) {
 			// extracted rectangle is totally inside the image
-#ifdef _MSC_VER
+#ifdef USE_PPL
 			concurrency::parallel_for(arma_ext::size_type(0), out.n_cols, [&](arma_ext::size_type j) {
+#elif defined(USE_OPENMP)
+	#pragma omp parallel for
+			for (int sj = 0 ; sj < (int)out.n_cols ; sj++) {
+				size_type j = (size_type)sj;
 #else
-            for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+            for (size_type j = 0 ; j < out.n_cols ; j++) {
 #endif
 				pixel_type* ptr = out.colptr(j);
 				const pixel_type* src = img.colptr(ipx + j) + ipy;
-				arma_ext::size_type i;
+				size_type i;
 				for (i = 0 ; i < out.n_rows ; i++) {
 					// bilinear interpolation
 					ptr[i] = arma_ext::saturate_cast<pixel_type>(src[i                 ] * a11 +
@@ -194,7 +205,7 @@ namespace auxiliary
 															src[i + img.n_rows    ] * a12 +
 															src[i + img.n_rows + 1] * a22);
 				}
-#ifdef _MSC_VER
+#ifdef USE_PPL
 			});
 #else
 			}
@@ -251,18 +262,18 @@ namespace auxiliary
 					  b2 = ox;
 
 			const pixel_type* src1 = img.colptr(sox) + soy;
-			for (arma_ext::size_type j = 0 ; j < out.n_cols ; j++) {
+			for (size_type j = 0 ; j < out.n_cols ; j++) {
 				pixel_type* ptr = out.colptr(j);
 				const pixel_type* src2 = src1 + img.n_rows;
 
 				if ((int)j < r(0) || (int)j >= r(2))
 					src2 -= img.n_rows;
 								
-				arma_ext::size_type i = 0;
-				for (; i < (arma_ext::size_type)r(1) ; i++)
+				size_type i = 0;
+				for (; i < (size_type)r(1) ; i++)
 					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[r(1)] * b1 + src2[r(1)] * b2);
 
-				for ( ; i < (arma_ext::size_type)r(3) ; i++) {
+				for ( ; i < (size_type)r(3) ; i++) {
 					// bilinear interpolation
 					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[i    ] * a11 +
 															src1[i + 1] * a21 +
@@ -303,11 +314,15 @@ namespace auxiliary
             double sz = (h.n_rows - 1) / -2.0;
             double denom = 2 * sigma * sigma;
             
-    #ifdef _MSC_VER
+#if defined(USE_PPL)
             concurrency::parallel_for(size_type(0), h.n_cols, [&](size_type c) {
-    #else
+#elif defined(USE_OPENMP)
+	#pragma omp parallel for
+			for (int sc = 0 ; sc < (int)h.n_cols ; sc++) {
+				size_type c = (size_type)sc;
+#else
             for (size_type c = 0 ; c < h.n_cols ; c++) {
-    #endif
+#endif
 				double* hptr = h.colptr(c);
                 double x = sz + c;
                 for (size_type r = 0 ; r < h.n_rows ; r++) {
@@ -315,7 +330,7 @@ namespace auxiliary
                     double arg = -(x * x + y * y) / denom;
                     hptr[r] = exp(arg);
                 }
-    #ifdef _MSC_VER
+    #ifdef USE_PPL
             });
     #else
             }

@@ -108,7 +108,7 @@ namespace auxiliary
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
 				dir_ = path;
-#if __cplusplus >= 201103L || defined(_MSC_VER)
+#ifdef USE_CXX11
 				std::for_each(boost::filesystem::directory_iterator(p), 
 					boost::filesystem::directory_iterator(), 
 					[&](boost::filesystem::directory_entry& entry) {
@@ -120,7 +120,7 @@ namespace auxiliary
 					if (boost::filesystem::is_regular_file(entry.status()) && 
 						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
 						files_.push_back(entry.path().string());
-#if __cplusplus >= 201103L || defined(_MSC_VER)
+#ifdef USE_CXX11
 				});
 #else
 				}

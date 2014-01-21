@@ -42,7 +42,7 @@
 namespace auxiliary
 {
 	/// Various border types, image boundaries are denoted with '|'
-#if __cplusplus >= 201103L || defined(_MSC_VER)
+#ifdef USE_CXX11
 	enum border_type : arma::uword {
 #else
 	enum border_type {
