@@ -42,7 +42,8 @@ namespace auxiliary
 {
 	//!	A minimal implementation of circular buffer class.
 	template <typename T>
-	class circular_buffer {
+	class circular_buffer
+    {
 		typedef T			value_type;
 		typedef T&			reference;
 		typedef const T&	const_reference;

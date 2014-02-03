@@ -43,10 +43,11 @@ namespace auxiliary
 {
 	/// Various border types, image boundaries are denoted with '|'
 #ifdef USE_CXX11
-	enum border_type : arma::uword {
+	enum border_type : arma::uword
 #else
-	enum border_type {
+	enum border_type
 #endif
+    {
 		constant,	///< iii | abcde | iii with some specified 'i'
 		reflect,	///< cba | abcde | edc
 		replicate,	///< aaa | abcde | eee
