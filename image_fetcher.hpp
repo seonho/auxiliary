@@ -3,12 +3,12 @@
  *	@brief		An image fetcher class implementation
  *	@author		seonho.oh@gmail.com
  *	@date		2013-07-01
- *	@copyright	2007-2013 seonho.oh@gmail.com
+ *	@copyright	2007-2014 seonho.oh@gmail.com
  *	@version	1.0
  *
  *	@section	LICENSE
  *
- *		Copyright (c) 2007-2013, Seonho Oh
+ *		Copyright (c) 2007-2014, Seonho Oh
  *		All rights reserved. 
  * 
  *		Redistribution and use in source and binary forms, with or without  
