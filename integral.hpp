@@ -39,6 +39,41 @@
 
 namespace auxiliary
 {
+    //! Compute integral
+    template <typename T1, typename T2>
+    void integral(const arma::Mat<T1>& A, arma::Mat<T2>& I)
+    {
+        typedef typename arma::uword size_type;
+        
+        // set size
+        I.set_size(A.n_rows, A.n_cols);
+        
+        // Naive implementation
+        const T1* ptr = A.memptr();
+        T2* iptr = I.memptr();
+        
+        iptr[0] = static_cast<T2>(ptr[0]);
+        
+        // 0-th column
+        for (size_type y = 1 ; y < A.n_rows ; y++)
+            iptr[y] = iptr[y - 1] + static_cast<T2>(ptr[y]);
+        
+        // 0-th row
+        for (size_type x = 1 ; x < A.n_cols ; x++)
+            I.at(0, x) = I.at(0, x - 1) + static_cast<T2>(A.at(0, x));
+        
+        const T2* iptr0 = iptr;
+        for (size_type x = 1 ; x < A.n_cols ; x++) {
+            ptr = A.colptr(x);
+            T2* iptr1 = I.colptr(x);
+            T2 s = 0;
+            for (size_type y = 1 ; y < A.n_rows ; y++) {
+                s += static_cast<T2>(ptr[y]);
+                iptr1[y] = iptr0[y] + s;
+            }
+        }
+    }
+    
 	/**
 	 *	@brief	Compute integral images
 	 *	@param [in] img		input image
