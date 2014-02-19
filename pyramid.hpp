@@ -133,8 +133,15 @@ namespace auxiliary
 		
 		circular_buffer<arma::ivec> cols(KERNEL_SIZE);
 
+#ifdef __VXWORKS__
+		ivec dummy(out.n_rows); dummy.zeros();
+#endif
 		for (arma::uword i = 0 ; i < KERNEL_SIZE ; i++)
+#ifdef __VXWORKS__
+			cols.push_back(dummy);
+#else
 			cols.push_back(zeros<ivec>(out.n_rows));
+#endif
 
 		int sx0 = -(int)KERNEL_SIZE / 2, sx = sx0;
 
@@ -201,7 +208,7 @@ namespace auxiliary
 #else
 			for (arma::uword y = 0 ; y < out.n_rows ; y++)
 			//concurrency::parallel_for(uword(0), out.n_rows, [&](uword y) {
-				dst[y] = castOp(col2[y] * 6 + (col1[y] + col3[y]) * 4 + col0[y] + col4[y]);
+				dst[y] = (typename T2::elem_type)castOp(col2[y] * 6 + (col1[y] + col3[y]) * 4 + col0[y] + col4[y]);
 			//});
 #endif
 		}

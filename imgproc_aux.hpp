@@ -167,16 +167,22 @@ namespace auxiliary
 		typedef typename arma_ext::size_type size_type;
 		arma::Mat<pixel_type> out(patchsize.height(), patchsize.width());
 
+#ifdef __VXWORKS__
+		typename arma::Col<elem_type>::template fixed<2> center_;
+		center_[0] = center[0];
+		center_[1] = center[1];
+#else
         typename arma::Col<elem_type>::template fixed<2> center_ = center;
+#endif
 
-		center_(0) -= (patchsize.width() - 1) * (elem_type)0.5;
-		center_(1) -= (patchsize.height() - 1) * (elem_type)0.5;
+		center_[0] -= (elem_type)(patchsize.width() - 1) * (elem_type)0.5;
+		center_[1] -= (elem_type)(patchsize.height() - 1) * (elem_type)0.5;
 
-		int ipx = (int)std::floor(center_(0));
-		int ipy = (int)std::floor(center_(1));
+		int ipx = (int)std::floor(center_[0]);
+		int ipy = (int)std::floor(center_[1]);
 
-		elem_type ox = center_(0) - ipx;
-		elem_type oy = center_(1) - ipy;
+		elem_type ox = center_[0] - (elem_type)ipx;
+		elem_type oy = center_[1] - (elem_type)ipy;
 		
 		elem_type a11 = (1 - ox) * (1 - oy),
 				  a12 =      ox  * (1 - oy),
@@ -200,10 +206,10 @@ namespace auxiliary
 				size_type i;
 				for (i = 0 ; i < out.n_rows ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<pixel_type>(src[i                 ] * a11 +
-															src[i + 1             ] * a21 +
-															src[i + img.n_rows    ] * a12 +
-															src[i + img.n_rows + 1] * a22);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>((elem_type)src[i                 ] * a11 +
+							(elem_type)src[i + 1             ] * a21 +
+							(elem_type)src[i + img.n_rows    ] * a12 +
+							(elem_type)src[i + img.n_rows + 1] * a22);
 				}
 #ifdef USE_PPL
 			});
@@ -219,39 +225,39 @@ namespace auxiliary
 			// -------- begin --------
 			if (ipx >= 0) {
 				sox += ipx;	// + ipx
-				r(0) = 0;
+				r[0] = 0;
 			} else {
-				r(0) = -ipx;
-				if (r(0) > (int)patchsize.width())
-					r(0) = patchsize.width();
+				r[0] = -ipx;
+				if (r[0] > (int)patchsize.width())
+					r[0] = patchsize.width();
 			}
 			
 			if (ipx + (int)patchsize.width() < (int)img.n_cols)
-				r(2) = patchsize.width();
+				r[2] = patchsize.width();
 			else {
-				r(2) = (int)img.n_cols - ipx - 1;
-				if (r(2) < 0) {
+				r[2] = (int)img.n_cols - ipx - 1;
+				if (r[2] < 0) {
 					sox += r(2);	// + width
-					r(2) = 0;
+					r[2] = 0;
 				}
 			}
 
 			if (ipy >= 0) {
 				soy += ipy;	// + ipy
-				r(1) = 0;
+				r[1] = 0;
 			} else {
-				r(1) = -ipy;
-				if (r(1) > (int)patchsize.height())
-					r(1) = patchsize.height();
+				r[1] = -ipy;
+				if (r[1] > (int)patchsize.height())
+					r[1] = patchsize.height();
 			}
 
 			if (ipy + (int)patchsize.height() < (int)img.n_rows)
-				r(3) = patchsize.height();
+				r[3] = patchsize.height();
 			else {
-				r(3) = (int)img.n_rows - ipy - 1;
-				if (r(3) < 0) {
-					soy += r(3);	// + height
-					r(3) = 0;
+				r[3] = (int)img.n_rows - ipy - 1;
+				if (r[3] < 0) {
+					soy += r[3];	// + height
+					r[3] = 0;
 				}
 			}
 			// --------- end ---------
@@ -266,25 +272,25 @@ namespace auxiliary
 				pixel_type* ptr = out.colptr(j);
 				const pixel_type* src2 = src1 + img.n_rows;
 
-				if ((int)j < r(0) || (int)j >= r(2))
+				if ((int)j < r[0] || (int)j >= r[2])
 					src2 -= img.n_rows;
 								
 				size_type i = 0;
 				for (; i < (size_type)r(1) ; i++)
-					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[r(1)] * b1 + src2[r(1)] * b2);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>((elem_type)src1[r[1]] * b1 + (elem_type)src2[r[1]] * b2);
 
 				for ( ; i < (size_type)r(3) ; i++) {
 					// bilinear interpolation
-					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[i    ] * a11 +
-															src1[i + 1] * a21 +
-															src2[i    ] * a12 +
-															src2[i + 1] * a22);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>((elem_type)src1[i    ] * a11 +
+							(elem_type)src1[i + 1] * a21 +
+							(elem_type)src2[i    ] * a12 +
+							(elem_type)src2[i + 1] * a22);
 				}
 
 				for ( ; i < out.n_rows ; i++)
-					ptr[i] = arma_ext::saturate_cast<pixel_type>(src1[r(3)] * b1 + src2[r(3)] * b2);
+					ptr[i] = arma_ext::saturate_cast<pixel_type>((elem_type)src1[r[3]] * b1 + (elem_type)src2[r[3]] * b2);
 
-				if ((int)j < r(2))
+				if ((int)j < r[2])
 					src1 = src2;
 			}
 		}
@@ -325,9 +331,10 @@ namespace auxiliary
 #endif
 				double* hptr = h.colptr(c);
                 double x = sz + c;
+				double xx = x * x;
                 for (size_type r = 0 ; r < h.n_rows ; r++) {
                     double y = sz + r;
-                    double arg = -(x * x + y * y) / denom;
+                    double arg = -(xx + y * y) / denom;
                     hptr[r] = exp(arg);
                 }
     #ifdef USE_PPL
