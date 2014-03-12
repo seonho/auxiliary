@@ -301,58 +301,15 @@ namespace auxiliary
 	/**
 	 *	@brief	Gaussian blur using 12x12 with given sigma.
 	 *	@param	img		An input image.
-	 *	@param	sigma	The sigma for gaussian kernel.
+	 *	@param	h		The blur kernel.
 	 *	@return	The blurred image.
 	 */
     template <typename pixel_type>
-	Image<pixel_type> blur(const Image<pixel_type>& img, double sigma)
+	Image<pixel_type> blur(const Image<pixel_type>& img, const mat& h)
 	{
 		typedef typename Image<pixel_type>::size_type size_type;
 
-		// gaussian kernel
-		const size_type multiplier = 6;
-		size_type kernel_size = size_type(multiplier * sigma);
-		
-		static mat h; // static gaussian kernel storage
-        
-        if (h.n_rows != kernel_size) {
-            h.resize(kernel_size, kernel_size);
-            double sz = (h.n_rows - 1) / -2.0;
-            double denom = 2 * sigma * sigma;
-            
-#if defined(USE_PPL)
-            concurrency::parallel_for(size_type(0), h.n_cols, [&](size_type c) {
-#elif defined(USE_OPENMP)
-	#pragma omp parallel for
-			for (int sc = 0 ; sc < (int)h.n_cols ; sc++) {
-				size_type c = (size_type)sc;
-#else
-            for (size_type c = 0 ; c < h.n_cols ; c++) {
-#endif
-				double* hptr = h.colptr(c);
-                double x = sz + c;
-				double xx = x * x;
-                for (size_type r = 0 ; r < h.n_rows ; r++) {
-                    double y = sz + r;
-                    double arg = -(xx + y * y) / denom;
-                    hptr[r] = exp(arg);
-                }
-    #ifdef USE_PPL
-            });
-    #else
-            }
-    #endif
-
-			umat mask = h < as_scalar(max(max(h))) * std::numeric_limits<double>::epsilon();
-			if (arma_ext::any(mask)) {
-				uword* mptr = mask.memptr();
-				double* hptr = h.memptr();
-				for (uword i = 0 ; i < h.n_elem ; i++)
-					if (mptr[i]) hptr[i] = 0;
-			}
-
-			h /= accu(h);
-		}
+		size_type kernel_size = h.n_rows;
 
 		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
 
