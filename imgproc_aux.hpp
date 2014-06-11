@@ -299,25 +299,16 @@ namespace auxiliary
 	}
 		
 	/**
-	 *	@brief	Gaussian blur using 12x12 with given sigma.
+	 *	@brief	Gaussian blur with given blur kernel.
 	 *	@param	img		An input image.
 	 *	@param	h		The blur kernel.
 	 *	@return	The blurred image.
 	 */
     template <typename pixel_type>
-	Image<pixel_type> blur(const Image<pixel_type>& img, const mat& h)
+	inline Image<pixel_type> blur(const Image<pixel_type>& img, const mat& h)
 	{
 		typedef typename Image<pixel_type>::size_type size_type;
-
-		size_type kernel_size = h.n_rows;
-
-		uword shift = (uword)std::ceil((kernel_size - 1) / 2.0);
-
-		// convolution
-		mat C = arma_ext::conv2(conv_to<mat>::from(img), h);
-		C = C(span(shift, C.n_rows - shift), span(shift, C. n_cols - shift));
-
-		return Image<pixel_type>(C);
+		return Image<pixel_type>(arma_ext::conv2(conv_to<mat>::from(img), h, arma_ext::same).eval());
 	}
 
 #ifdef USE_OPENCV
