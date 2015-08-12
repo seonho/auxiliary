@@ -107,7 +107,7 @@ namespace auxiliary
 #if defined(USE_BOOST) && defined(USE_OPENCV)
 			boost::filesystem::path p(path);
 			if (boost::filesystem::is_directory(p)) {
-				dir_ = path;
+				dir_ = boost::filesystem::absolute(p).string();
 #ifdef USE_CXX11
 				std::for_each(boost::filesystem::directory_iterator(p), 
 					boost::filesystem::directory_iterator(), 
@@ -117,8 +117,8 @@ namespace auxiliary
 				for (boost::filesystem::directory_iterator iter(p) ; iter != end ; ++iter) {
 					boost::filesystem::directory_entry& entry = *iter;
 #endif
-					if (boost::filesystem::is_regular_file(entry.status()) && 
-						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
+					if (boost::filesystem::is_regular_file(entry.status()))// && 
+						//supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
 						files_.push_back(entry.path().string());
 #ifdef USE_CXX11
 				});
@@ -201,14 +201,28 @@ namespace auxiliary
                 image = bgr2gray<pixel_type>(frame);
 			} else if(!files_.empty()) {
 				//std::cout << files[pos].c_str() << " "; /*std::endl;*/
-				frame = cv::imread(files_[pos_++]);
-
 #ifdef USE_16BIT_IMAGE
                 // simulate different image format
-                std::cout << "Simulate 16 bit image" << std::endl;
-                frame.clone().convertTo(frame, CV_16U);
-#endif
+                //std::cout << "Simulate 16 bit image" << std::endl;
+                //frame.clone().convertTo(frame, CV_16U);
+				//frame = cv::Mat(320, 240, cv::DataType<pixel_type>::type);
+				//pixel_type* ptr = frame.ptr<pixel_type>();
+				arma::Mat<pixel_type> gray(320, 240);
+				pixel_type* ptr = gray.memptr();
+				
+				FILE* f = fopen(files_[pos_++].c_str(), "r");
+
+				for (int r = 0 ; r < 240 ; r++) {
+					for (int c = 0 ; c < 320 ; c++)
+						fscanf(f, "%uh ", ptr++);
+				}
+				
+				fclose(f);
+				image = Image<pixel_type>(gray.t());
+#else
+				frame = cv::imread(files_[pos_++]);
                 image = bgr2gray<pixel_type>(frame);
+#endif
 			} else if (fin_.is_open()) {
 #else
             if (fin_.is_open()) {
