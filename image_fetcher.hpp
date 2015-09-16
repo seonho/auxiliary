@@ -48,6 +48,9 @@
 using namespace boost::filesystem;
 #endif
 
+#define RAW_16BIT_WIDTH		320
+#define RAW_16BIT_HEIGHT	240
+
 //!	An auxiliary interface functions for armadillo library.
 namespace auxiliary
 {
@@ -117,8 +120,13 @@ namespace auxiliary
 				for (boost::filesystem::directory_iterator iter(p) ; iter != end ; ++iter) {
 					boost::filesystem::directory_entry& entry = *iter;
 #endif
-					if (boost::filesystem::is_regular_file(entry.status()))// && 
-						//supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
+
+#ifdef USE_16BIT_IMAGE
+					if (boost::filesystem::is_regular_file(entry.status())) // match the extension
+#else
+					if (boost::filesystem::is_regular_file(entry.status()) && 
+						supported_file_formats.find(entry.path().extension().string()) != std::string::npos) // match the extension
+#endif
 						files_.push_back(entry.path().string());
 #ifdef USE_CXX11
 				});
@@ -207,13 +215,13 @@ namespace auxiliary
                 //frame.clone().convertTo(frame, CV_16U);
 				//frame = cv::Mat(320, 240, cv::DataType<pixel_type>::type);
 				//pixel_type* ptr = frame.ptr<pixel_type>();
-				arma::Mat<pixel_type> gray(320, 240);
+				arma::Mat<pixel_type> gray(RAW_16BIT_WIDTH, RAW_16BIT_HEIGHT);
 				pixel_type* ptr = gray.memptr();
 				
 				FILE* f = fopen(files_[pos_++].c_str(), "r");
 
-				for (int r = 0 ; r < 240 ; r++) {
-					for (int c = 0 ; c < 320 ; c++)
+				for (int r = 0 ; r < RAW_16BIT_HEIGHT ; r++) {
+					for (int c = 0 ; c < RAW_16BIT_WIDTH ; c++)
 						fscanf(f, "%uh ", ptr++);
 				}
 				

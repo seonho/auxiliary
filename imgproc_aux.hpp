@@ -45,7 +45,6 @@
 #pragma comment(lib, OPENCV_LIB_EXPAND("core"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("imgproc"))
 #pragma comment(lib, OPENCV_LIB_EXPAND("highgui"))
-#pragma comment(lib, OPENCV_LIB_EXPAND("video"))
 #else
 #include <opencv2/opencv.hpp>
 #endif
