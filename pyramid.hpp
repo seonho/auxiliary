@@ -7,7 +7,7 @@
  *
  *	@section	LICENSE
  *
- *		Copyright (c) 2007-2014, Seonho Oh
+ *		Copyright (c) 2013-2015, Seonho Oh
  *		All rights reserved. 
  * 
  *		Redistribution and use in source and binary forms, with or without  
